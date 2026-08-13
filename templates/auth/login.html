@@ -18,8 +18,9 @@
         <p class="text-secondary small mb-0">Sign in to join an active session or manage PLC records.</p>
       </div>
 
-      <form method="POST" novalidate class="d-flex flex-column gap-3">
+      <form method="POST" novalidate class="d-flex flex-column gap-3" id="loginForm">
         {{ form.hidden_tag() }}
+        {{ form.device_id(id="hidden_device_id") }}
 
         <!-- Email Field -->
         <div>
@@ -77,4 +78,34 @@
 
   </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  function initDeviceFingerprint() {
+    let deviceUUID = localStorage.getItem('plc_attendance_device_uuid');
+    if (!deviceUUID) {
+      deviceUUID = 'dev-' + ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+        (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+      );
+      localStorage.setItem('plc_attendance_device_uuid', deviceUUID);
+    }
+    
+    const entropy = `${screen.width}x${screen.height}-${navigator.language}-${new Date().getTimezoneOffset()}`;
+    const fullDeviceId = `${deviceUUID}:${entropy}`;
+    
+    const hiddenField = document.getElementById('hidden_device_id');
+    if (hiddenField) {
+      hiddenField.value = fullDeviceId;
+    }
+  }
+
+  initDeviceFingerprint();
+  window.addEventListener('DOMContentLoaded', initDeviceFingerprint);
+  window.addEventListener('pageshow', initDeviceFingerprint);
+
+  document.getElementById('loginForm')?.addEventListener('submit', () => {
+    initDeviceFingerprint();
+  });
+</script>
 {% endblock %}

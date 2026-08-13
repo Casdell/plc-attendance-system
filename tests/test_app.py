@@ -228,7 +228,7 @@ class TestCheckInFlow:
             data={"access_code": "9999", "device_id": "phone-shared-uuid"},
             follow_redirects=True,
         )
-        assert b"Anti-Proxy Violation" in resp2.data
+        assert "submit twice" in resp2.get_data(as_text=True)
 
         # Ensure Teacher 2's attendance was NOT recorded from the duplicate device
         with app.app_context():
@@ -241,9 +241,54 @@ class TestCheckInFlow:
             data={"access_code": "9999", "device_id": "phone-legit-uuid"},
             follow_redirects=True,
         )
-        assert b"Attendance verified" in resp3.data
+        assert "Attendance verified" in resp3.get_data(as_text=True)
         with app.app_context():
             assert Attendance.query.filter_by(session_id=session_id).count() == 2
+
+    def test_device_login_blocked_if_already_submitted_for_active_session(self, app, client):
+        admin_email = make_admin(app)
+        teacher1_email = make_teacher(app, email="t1@school.edu", name="Teacher One")
+        teacher2_email = make_teacher(app, email="t2@school.edu", name="Teacher Two")
+
+        with app.app_context():
+            admin = User.query.filter_by(email=admin_email).first()
+            s = PLCSession(title="Live Active PLC", access_code="5555", creator_id=admin.id, is_active=True)
+            db.session.add(s)
+            db.session.commit()
+            session_id = s.id
+
+        # Teacher 1 logs in and checks in on Device Alpha
+        login(client, teacher1_email)
+        client.post(
+            f"/teacher/sessions/{session_id}/checkin",
+            data={"access_code": "5555", "device_id": "device-alpha-fingerprint"},
+            follow_redirects=True,
+        )
+        client.get("/auth/logout")
+
+        # Teacher 2 attempts to log in from Device Alpha -> Blocked at login
+        resp_login_blocked = client.post(
+            "/auth/login",
+            data={
+                "email": teacher2_email,
+                "password": "Password123",
+                "device_id": "device-alpha-fingerprint",
+            },
+            follow_redirects=True,
+        )
+        assert "submit twice" in resp_login_blocked.get_data(as_text=True)
+
+        # Teacher 2 logs in from Device Beta -> Allowed
+        resp_login_allowed = client.post(
+            "/auth/login",
+            data={
+                "email": teacher2_email,
+                "password": "Password123",
+                "device_id": "device-beta-fingerprint",
+            },
+            follow_redirects=True,
+        )
+        assert "Welcome back" in resp_login_allowed.get_data(as_text=True)
 
     def test_checkin_rejects_wrong_token(self, app, client):
         admin_email = make_admin(app)

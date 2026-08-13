@@ -1,8 +1,9 @@
-from flask import Blueprint, render_template, redirect, url_for, flash
+import hashlib
+from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
 
 from extensions import db
-from models import User
+from models import User, PLCSession, Attendance
 from forms import RegisterForm, LoginForm
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
@@ -55,6 +56,26 @@ def login():
                     "warning",
                 )
                 return render_template("auth/login.html", form=form)
+
+            # Prevent device from logging in with different credentials if it already submitted for an active session
+            device_id = form.device_id.data.strip() if (form.device_id.data and form.device_id.data.strip()) else None
+            if device_id and not user.is_admin:
+                active_proxy_attendance = (
+                    Attendance.query.join(PLCSession)
+                    .filter(
+                        PLCSession.is_active == True,
+                        Attendance.device_id == device_id,
+                        Attendance.user_id != user.id,
+                    )
+                    .first()
+                )
+                if active_proxy_attendance:
+                    flash(
+                        "You can't submit twice. This device has already been used to record attendance for another educator.",
+                        "danger",
+                    )
+                    return render_template("auth/login.html", form=form)
+
             login_user(user)
             flash(f"Welcome back, {user.name.split()[0]}.", "success")
             return redirect(url_for("admin.dashboard") if user.is_admin else url_for("teacher.dashboard"))

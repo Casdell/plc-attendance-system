@@ -71,7 +71,7 @@ def checkin(session_id):
             ).filter(Attendance.user_id != current_user.id).first()
             if proxy_record:
                 flash(
-                    "Anti-Proxy Violation: This device has already recorded attendance for another attendee in this session. Submissions for multiple attendees from the same device are prohibited.",
+                    "You can't submit twice. This device has already recorded attendance for another attendee in this session.",
                     "danger",
                 )
                 return render_template("teacher/checkin.html", session_obj=session_obj, form=form)
