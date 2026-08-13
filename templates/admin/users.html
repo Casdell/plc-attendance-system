@@ -227,6 +227,13 @@
 {% block extra_scripts %}
 <script>
   function openResetPasswordModal(userId, userName, userEmail) {
+    const modalEl = document.getElementById('resetPasswordModal');
+    
+    // Ensure modal element is always attached directly to <body> to avoid any container nesting
+    if (modalEl && modalEl.parentElement !== document.body) {
+      document.body.appendChild(modalEl);
+    }
+
     const form = document.getElementById('resetPasswordForm');
     form.action = `/admin/users/${userId}/reset-password`;
     document.getElementById('modalTargetUserText').textContent = `${userName} (${userEmail})`;
@@ -236,15 +243,17 @@
     newPassField.value = '';
     confirmPassField.value = '';
 
-    const modalEl = document.getElementById('resetPasswordModal');
-    const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
-    
-    modalEl.addEventListener('shown.bs.modal', function onShown() {
-      newPassField.focus();
-      modalEl.removeEventListener('shown.bs.modal', onShown);
+    const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl, {
+      backdrop: true,
+      keyboard: true,
+      focus: true
     });
 
     modalInstance.show();
+
+    setTimeout(() => {
+      newPassField.focus();
+    }, 250);
   }
 </script>
 {% endblock %}
