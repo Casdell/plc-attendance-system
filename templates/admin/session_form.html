@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+{% block title %}{% if is_edit %}Edit PLC Session: {{ session_obj.title }}{% else %}Open New PLC Session{% endif %}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center py-4">
+  <div class="col-12 col-md-10 col-lg-7">
+
+    <!-- Breadcrumb Link -->
+    <div class="mb-3">
+      {% if is_edit %}
+        <a href="{{ url_for('admin.session_detail', session_id=session_obj.id) }}" class="text-secondary small fw-semibold text-decoration-none d-inline-flex align-items-center gap-1">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          <span>Back to Session Details</span>
+        </a>
+      {% else %}
+        <a href="{{ url_for('admin.dashboard') }}" class="text-secondary small fw-semibold text-decoration-none d-inline-flex align-items-center gap-1">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          <span>Back to Session Dashboard</span>
+        </a>
+      {% endif %}
+    </div>
+
+    <div class="glass-panel position-relative overflow-hidden p-4 p-sm-5 shadow-lg">
+      <div class="card-top-line"></div>
+
+      <div class="text-center mb-4">
+        <div class="avatar-circle avatar-circle-gold mx-auto mb-3" style="width: 48px; height: 48px;">
+          {% if is_edit %}
+            <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+          {% else %}
+            <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+          {% endif %}
+        </div>
+        <h2 class="font-display fw-bolder text-dark mb-1">{% if is_edit %}Edit PLC Session{% else %}Open a PLC Session{% endif %}</h2>
+        <p class="text-secondary small mb-0">
+          {% if is_edit %}
+            Update session information, schedule duration, or recalibrate the venue geofence perimeter.
+          {% else %}
+            A unique 4-digit token will be generated, and your device's current location will define the verified venue geofence perimeter.
+          {% endif %}
+        </p>
+      </div>
+
+      <form method="POST" novalidate id="sessionForm" class="d-flex flex-column gap-3">
+        {{ form.hidden_tag() }}
+
+        <!-- Title Field -->
+        <div>
+          <label for="{{ form.title.id }}" class="form-label-premium">PLC Topic / Session Title</label>
+          <div class="input-icon-wrapper">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            {{ form.title(class="form-control form-control-premium", placeholder="e.g. STEM Integration in Core Mathematics", autofocus=true) }}
+          </div>
+          {% for e in form.title.errors %}
+            <div class="text-danger small mt-1 d-flex align-items-center gap-1">
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              {{ e }}
+            </div>
+          {% endfor %}
+        </div>
+
+        <div class="row g-3">
+          <!-- Department Field -->
+          <div class="col-12 col-sm-6">
+            <label for="{{ form.department.id }}" class="form-label-premium">Target Department (Optional)</label>
+            <div class="input-icon-wrapper">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+              {{ form.department(class="form-control form-control-premium", placeholder="All Departments") }}
+            </div>
+          </div>
+
+          <!-- Duration Field -->
+          <div class="col-12 col-sm-6">
+            <label for="{{ form.duration_minutes.id }}" class="form-label-premium">Duration (Minutes)</label>
+            <div class="input-icon-wrapper">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              {{ form.duration_minutes(class="form-control form-control-premium", placeholder="60") }}
+            </div>
+            {% for e in form.duration_minutes.errors %}
+              <div class="text-danger small mt-1">{{ e }}</div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Venue Geofencing Card -->
+        <div class="p-3.5 bg-light rounded-3 border border-slate-200 mt-2">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <div class="d-flex align-items-center gap-2">
+              <div class="avatar-circle avatar-circle-gold" style="width: 26px; height: 26px;">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <span class="small fw-bold text-dark text-uppercase tracking-wider">Venue Geofence Perimeter</span>
+            </div>
+
+            <button type="button" id="btnDetectGPS" class="btn btn-sm btn-outline-dark py-0.5 px-2 font-monospace small">
+              {% if is_edit %}Re-Detect GPS{% else %}Detect GPS Location{% endif %}
+            </button>
+          </div>
+
+          <p class="text-secondary small mb-3" style="font-size: 0.75rem;">
+            Attendees must be physically located within this distance radius from the venue to check in.
+          </p>
+
+          <!-- Hidden GPS Form Coordinates -->
+          {{ form.latitude(id="hidden_latitude") }}
+          {{ form.longitude(id="hidden_longitude") }}
+
+          <div class="row g-3">
+            <!-- Radius Selector -->
+            <div class="col-12 col-sm-6">
+              <label for="{{ form.radius_meters.id }}" class="form-label-premium">Margin Radius Limit (Meters)</label>
+              <div class="input-icon-wrapper">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                </svg>
+                {{ form.radius_meters(class="form-control form-control-premium", placeholder="150") }}
+              </div>
+            </div>
+
+            <!-- Live GPS Status Display -->
+            <div class="col-12 col-sm-6">
+              <label class="form-label-premium">GPS Lock Status</label>
+              <div id="gpsStatusBox" class="form-control form-control-premium d-flex align-items-center justify-content-between bg-white">
+                <span id="gpsStatusText" class="small text-muted font-monospace">
+                  {% if is_edit and session_obj and session_obj.latitude and session_obj.longitude %}
+                    GPS Set: {{ session_obj.latitude|round(4) }}, {{ session_obj.longitude|round(4) }}
+                  {% else %}
+                    Acquiring GPS...
+                  {% endif %}
+                </span>
+                <span id="gpsStatusDot" class="live-pulse-dot" style="{% if is_edit and session_obj and session_obj.latitude %}display: inline-block;{% else %}display: none;{% endif %}"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" class="btn-gold-custom w-100 py-3 mt-3 shadow">
+          {% if is_edit %}
+            <span>Save Session Changes</span>
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          {% else %}
+            <span>Open Session &amp; Activate Geofence</span>
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            </svg>
+          {% endif %}
+        </button>
+      </form>
+
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const isEditMode = {{ 'true' if is_edit else 'false' }};
+  const initialLat = "{{ session_obj.latitude if is_edit and session_obj and session_obj.latitude else '' }}";
+
+  function acquireGPS() {
+    const statusText = document.getElementById('gpsStatusText');
+    const statusDot = document.getElementById('gpsStatusDot');
+    const latField = document.getElementById('hidden_latitude');
+    const lngField = document.getElementById('hidden_longitude');
+
+    if (!navigator.geolocation) {
+      statusText.textContent = "GPS Not Supported";
+      statusText.className = "small text-warning font-monospace";
+      return;
+    }
+
+    statusText.textContent = "Querying device GPS...";
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude.toFixed(6);
+        const lng = pos.coords.longitude.toFixed(6);
+        latField.value = lat;
+        lngField.value = lng;
+        statusText.textContent = `GPS Locked: ${lat}, ${lng}`;
+        statusText.className = "small text-success fw-bold font-monospace";
+        if (statusDot) statusDot.style.display = "inline-block";
+      },
+      (err) => {
+        if (!isEditMode || !initialLat) {
+          statusText.textContent = "GPS Optional / Blocked";
+          statusText.className = "small text-secondary font-monospace";
+        }
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+    );
+  }
+
+  document.getElementById('btnDetectGPS').addEventListener('click', acquireGPS);
+  
+  // On page load, auto-detect only for new sessions if no GPS coordinates exist
+  window.addEventListener('DOMContentLoaded', () => {
+    if (!isEditMode || !initialLat) {
+      acquireGPS();
+    }
+  });
+</script>
+{% endblock %}

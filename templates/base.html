@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en" class="h-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Overview{% endblock %} &middot; GES PLC Digital Attendance System</title>
+  
+  <!-- Bootstrap 5.3.3 CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+
+  <!-- Bespoke Design Tokens & Keyframe Animations -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="d-flex flex-column h-100">
+
+  <!-- Executive Navigation Bar -->
+  <nav class="navbar navbar-expand-lg navbar-dark app-navbar sticky-top py-2">
+    <div class="container-xl">
+      
+      <!-- Brand Logo -->
+      <a class="navbar-brand d-flex align-items-center gap-2 py-0 me-4" href="{{ url_for('index') }}">
+        <div class="brand-crest">
+          <div class="brand-crest-inner">
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+          </div>
+        </div>
+        <div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="font-display fw-bold text-white fs-6 tracking-tight">GES PLC Attendance</span>
+            <span class="badge-compliance d-none d-md-inline-block">Ver. 2.4</span>
+          </div>
+          <p class="text-secondary small mb-0 font-monospace" style="font-size: 0.6875rem;">SHS Professional Learning Community</p>
+        </div>
+      </a>
+
+      <!-- Navbar Toggler for Mobile -->
+      <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain" aria-controls="navbarMain" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <!-- Navigation Content -->
+      <div class="collapse navbar-collapse" id="navbarMain">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0 gap-1">
+          {% if current_user.is_authenticated %}
+            {% if current_user.is_admin %}
+              <li class="nav-item">
+                <a class="nav-link text-white-50 hover-text-white d-flex align-items-center gap-1.5 px-3 py-2 rounded-2" href="{{ url_for('admin.dashboard') }}">
+                  <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                  </svg>
+                  <span>Dashboard</span>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link text-white-50 hover-text-white d-flex align-items-center gap-1.5 px-3 py-2 rounded-2" href="{{ url_for('admin.users_list') }}">
+                  <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                  <span>Manage Users</span>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link text-warning d-flex align-items-center gap-1.5 px-3 py-2 rounded-2 fw-semibold" href="{{ url_for('admin.new_session') }}">
+                  <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                  </svg>
+                  <span>Open Session</span>
+                </a>
+              </li>
+            {% else %}
+              <li class="nav-item">
+                <a class="nav-link text-white-50 d-flex align-items-center gap-1.5 px-3 py-2 rounded-2" href="{{ url_for('teacher.dashboard') }}">
+                  <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  <span>Active Sessions</span>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link text-white-50 d-flex align-items-center gap-1.5 px-3 py-2 rounded-2" href="{{ url_for('teacher.history') }}">
+                  <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>My History</span>
+                </a>
+              </li>
+            {% endif %}
+          {% endif %}
+        </ul>
+
+        <!-- Right User / Auth Controls -->
+        <div class="d-flex align-items-center gap-2 gap-sm-3">
+          {% if current_user.is_authenticated %}
+            <div class="d-flex align-items-center gap-2 bg-white bg-opacity-10 border border-white border-opacity-10 px-2 py-1 rounded-pill">
+              <div class="avatar-circle avatar-circle-gold" style="width: 28px; height: 28px; font-size: 0.75rem;">
+                {{ current_user.name[:1]|upper }}
+              </div>
+              <div class="d-none d-sm-block text-start pe-2">
+                <p class="mb-0 text-white small fw-semibold lh-1">{{ current_user.name.split()[0] }}</p>
+                <p class="mb-0 text-warning font-monospace lh-1 mt-1" style="font-size: 0.625rem;">
+                  {{ 'Coordinator' if current_user.is_admin else 'Educator' }}
+                </p>
+              </div>
+            </div>
+            <a href="{{ url_for('auth.logout') }}" title="Sign Out" class="btn btn-sm btn-outline-light border-0 text-white-50 hover-text-danger d-flex align-items-center justify-content-center p-2 rounded-2">
+              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+            </a>
+          {% else %}
+            <a href="{{ url_for('auth.login') }}" class="btn btn-sm btn-outline-light border-0 text-white px-3 py-2 rounded-2">
+              Log In
+            </a>
+            <a href="{{ url_for('auth.register') }}" class="btn-gold-custom py-1.5 px-3 small">
+              Register Account
+            </a>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+  </nav>
+
+  <!-- Flash Notification Toast Container -->
+  <div class="container-xl pt-3">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="row justify-content-center mb-3">
+          <div class="col-12 col-md-10">
+            {% for category, message in messages %}
+              {% if category == 'success' %}
+                <div class="alert alert-success alert-dismissible fade show d-flex align-items-center gap-2 border-0 shadow-sm animate-fade-in-down rounded-3" role="alert">
+                  <svg width="18" height="18" class="text-success flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <div class="small fw-semibold">{{ message }}</div>
+                  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+              {% elif category == 'danger' %}
+                <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center gap-2 border-0 shadow-sm animate-fade-in-down rounded-3" role="alert">
+                  <svg width="18" height="18" class="text-danger flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  <div class="small fw-semibold">{{ message }}</div>
+                  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+              {% elif category == 'warning' %}
+                <div class="alert alert-warning alert-dismissible fade show d-flex align-items-center gap-2 border-0 shadow-sm animate-fade-in-down rounded-3" role="alert">
+                  <svg width="18" height="18" class="text-warning flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <div class="small fw-semibold">{{ message }}</div>
+                  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+              {% else %}
+                <div class="alert alert-info alert-dismissible fade show d-flex align-items-center gap-2 border-0 shadow-sm animate-fade-in-down rounded-3" role="alert">
+                  <svg width="18" height="18" class="text-info flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div class="small fw-semibold">{{ message }}</div>
+                  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+              {% endif %}
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+    {% endwith %}
+  </div>
+
+  <!-- Primary Page Body Container -->
+  <main class="flex-shrink-0 py-4 py-lg-5 animate-fade-in-up">
+    <div class="container-xl">
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+
+  <!-- Executive Footer -->
+  <footer class="footer mt-auto py-3 bg-white border-top border-slate-200">
+    <div class="container-xl d-flex flex-column flex-sm-row align-items-center justify-content-between gap-2 text-secondary small">
+      <div class="d-flex align-items-center gap-2">
+        <span class="live-pulse-dot"></span>
+        <span class="fw-semibold text-dark">Ghana Education Service Digital Compliance</span>
+        <span class="d-none d-md-inline text-muted">|</span>
+        <span class="d-none d-md-inline">SHS Professional Learning Community (PLC) Verification</span>
+      </div>
+      <div class="text-muted font-monospace" style="font-size: 0.6875rem;">
+        Encrypted Session Auth &bull; Zero-Proxy Protocol
+      </div>
+    </div>
+  </footer>
+
+  <!-- Bootstrap 5 JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,150 @@
+{% if user_list %}
+<div class="table-responsive">
+  <table class="table-premium mb-0">
+    <thead>
+      <tr>
+        <th>Educator / Administrator</th>
+        <th>Department</th>
+        <th>Role</th>
+        <th>Approval Status</th>
+        <th>Attendance Activity</th>
+        <th>Registered</th>
+        <th class="text-end">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for u in user_list %}
+      <tr>
+        <!-- User Info -->
+        <td>
+          <div class="d-flex align-items-center gap-2.5">
+            <div class="avatar-circle {% if u.role == 'admin' %}avatar-circle-gold{% else %}avatar-circle-emerald{% endif %}" style="width: 32px; height: 32px; font-size: 0.75rem;">
+              {{ u.name[:2]|upper }}
+            </div>
+            <div>
+              <div class="fw-bold text-dark d-flex align-items-center gap-1.5">
+                <span>{{ u.name }}</span>
+                {% if u.id == current_user.id %}
+                  <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace" style="font-size: 0.625rem;">You</span>
+                {% endif %}
+              </div>
+              <div class="text-muted small font-monospace" style="font-size: 0.75rem;">{{ u.email }}</div>
+            </div>
+          </div>
+        </td>
+
+        <!-- Department -->
+        <td>
+          <span class="small text-dark fw-semibold">{{ u.department or "-" }}</span>
+        </td>
+
+        <!-- Role -->
+        <td>
+          {% if u.role == 'admin' %}
+            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle font-monospace small">
+              Coordinator
+            </span>
+          {% else %}
+            <span class="badge bg-secondary-subtle text-secondary border font-monospace small">
+              Teacher
+            </span>
+          {% endif %}
+        </td>
+
+        <!-- Approval Status -->
+        <td class="text-nowrap">
+          {% if u.is_approved %}
+            <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle d-inline-flex align-items-center gap-1.5 py-1 px-2 font-monospace small">
+              <span class="d-inline-block rounded-circle bg-success" style="width: 6px; height: 6px;"></span>
+              <span>Approved &amp; Active</span>
+            </span>
+          {% else %}
+            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle d-inline-flex align-items-center gap-1.5 py-1 px-2 font-monospace small">
+              <span class="live-pulse-dot" style="width: 6px; height: 6px;"></span>
+              <span>Pending Review</span>
+            </span>
+          {% endif %}
+        </td>
+
+        <!-- Attendance Activity -->
+        <td class="text-nowrap">
+          <div class="d-flex align-items-center gap-1.5">
+            <span class="font-display fw-bold text-dark">{{ u.attendance_records|length }}</span>
+            <span class="text-muted small">sessions</span>
+          </div>
+        </td>
+
+        <!-- Registered Date -->
+        <td class="text-nowrap text-muted small" style="font-size: 0.75rem;">
+          {{ u.created_at.strftime('%d %b %Y') if u.created_at else '-' }}
+        </td>
+
+        <!-- Actions -->
+        <td class="text-end text-nowrap">
+          <div class="d-inline-flex align-items-center gap-1.5">
+            {% if not u.is_approved %}
+              <!-- Approve Button -->
+              <form method="POST" action="{{ url_for('admin.approve_user', user_id=u.id) }}" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-sm btn-success rounded-2 py-1 px-2.5 small fw-semibold d-inline-flex align-items-center gap-1" title="Authorize and activate this user account">
+                  <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>Approve</span>
+                </button>
+              </form>
+
+              <!-- Reject / Delete Registration Button -->
+              <form method="POST" action="{{ url_for('admin.reject_user', user_id=u.id) }}" onsubmit="return confirm('Reject and discard registration for {{ u.name }}?');" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-sm btn-outline-danger rounded-2 py-1 px-2 small" title="Reject registration">
+                  <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </form>
+            {% else %}
+              <!-- Reset Password Trigger -->
+              <button type="button" onclick="openResetPasswordModal({{ u.id }}, '{{ u.name|replace('\'', '\\\'') }}', '{{ u.email }}')" class="btn btn-sm btn-outline-dark rounded-2 py-1 px-2 small fw-semibold d-inline-flex align-items-center gap-1" title="Reset password for this user">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                </svg>
+                <span>Reset Pass</span>
+              </button>
+
+              <!-- Delete User (Dormant Account) -->
+              {% if u.id != current_user.id %}
+                <form method="POST" action="{{ url_for('admin.delete_user', user_id=u.id) }}" onsubmit="return confirm('Are you sure you want to permanently delete account for {{ u.name }} ({{ u.email }}) and all related attendance history?');" class="d-inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-sm btn-outline-danger rounded-2 py-1 px-2 small" title="Delete dormant user">
+                    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </form>
+              {% else %}
+                <button type="button" disabled class="btn btn-sm btn-outline-secondary rounded-2 py-1 px-2 small opacity-25" title="You cannot delete yourself">
+                  <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              {% endif %}
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="p-5 text-center text-muted small">
+  <div class="avatar-circle avatar-circle-slate mx-auto mb-2" style="width: 36px; height: 36px;">
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+    </svg>
+  </div>
+  <p class="mb-0 fw-semibold text-dark">No accounts in this category</p>
+  <p class="text-muted mb-0">No registered educators matching this filter.</p>
+</div>
+{% endif %}

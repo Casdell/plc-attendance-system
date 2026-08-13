@@ -1,0 +1,352 @@
+{% extends "base.html" %}
+{% block title %}{{ session_obj.title }}{% endblock %}
+
+{% block content %}
+<div class="space-y-4">
+
+  <!-- Header & Actions -->
+  <div class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3 pb-3 mb-4 border-bottom border-slate-200">
+    <div>
+      <a href="{{ url_for('admin.dashboard') }}" class="text-secondary small fw-semibold text-decoration-none d-inline-flex align-items-center gap-1 mb-2">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+        </svg>
+        <span>Back to Session Dashboard</span>
+      </a>
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <h1 class="font-display h3 fw-bolder text-dark mb-0">{{ session_obj.title }}</h1>
+        {% if session_obj.is_active %}
+          <span class="badge-status-open">
+            <span class="live-pulse-dot"></span>
+            Active Window
+          </span>
+        {% else %}
+          <span class="badge-status-closed">
+            Concluded
+          </span>
+        {% endif %}
+
+        {% if session_obj.latitude and session_obj.longitude %}
+          <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle font-monospace small">
+            GPS Locked: {{ session_obj.latitude|round(4) }}, {{ session_obj.longitude|round(4) }} (&plusmn;{{ session_obj.radius_meters|round|int }}m)
+          </span>
+        {% endif %}
+      </div>
+      <p class="text-muted small mb-0 mt-1 d-flex flex-wrap align-items-center gap-2">
+        <span>{{ session_obj.date.strftime('%d %B %Y at %H:%M') }}</span>
+        <span>&bull;</span>
+        <span>{{ session_obj.duration_minutes }} minutes</span>
+        <span>&bull;</span>
+        <span class="fw-semibold text-dark">{{ session_obj.department or "All School Departments" }}</span>
+      </p>
+    </div>
+
+    <!-- Actions (Host Check-in, Edit, Close, Delete, Export CSV) -->
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      {% if admin_checked_in %}
+        <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle d-inline-flex align-items-center gap-1.5 py-2 px-3 rounded-2 fw-semibold">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+          <span>Host Present</span>
+        </span>
+      {% elif session_obj.is_active %}
+        <a href="{{ url_for('teacher.checkin', session_id=session_obj.id) }}" class="btn btn-sm btn-outline-success d-inline-flex align-items-center gap-1.5 py-2 px-3 rounded-2 fw-semibold">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>Check In Host Machine</span>
+        </a>
+      {% endif %}
+
+      <a href="{{ url_for('admin.edit_session', session_id=session_obj.id) }}" class="btn btn-sm btn-outline-dark d-inline-flex align-items-center gap-1.5 py-2 px-3 rounded-2 fw-semibold">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+        </svg>
+        <span>Edit Session</span>
+      </a>
+
+      {% if session_obj.is_active %}
+        <form method="POST" action="{{ url_for('admin.close_session', session_id=session_obj.id) }}" onsubmit="return confirm('Are you sure you want to close this session? Teachers will no longer be able to check in.');" class="d-inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-sm btn-outline-warning d-inline-flex align-items-center gap-1.5 py-2 px-3 rounded-2 fw-semibold">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>Close Session</span>
+          </button>
+        </form>
+      {% endif %}
+
+      <form method="POST" action="{{ url_for('admin.delete_session', session_id=session_obj.id) }}" onsubmit="return confirm('Are you sure you want to permanently delete this session and all associated attendance records? This cannot be undone.');" class="d-inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1.5 py-2 px-3 rounded-2 fw-semibold">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+          <span>Delete</span>
+        </button>
+      </form>
+
+      <a href="{{ url_for('admin.export_csv', session_id=session_obj.id) }}" class="btn-gold-custom py-2 px-3 small">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+        </svg>
+        <span>Export CSV Audit</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Hero Code Display & Live Stats -->
+  <div class="row g-4 mb-4">
+    
+    <!-- Large Code Display Box (Left) -->
+    <div class="col-12 col-lg-5">
+      <div class="code-hero-box p-4 p-sm-5 text-white h-100 d-flex flex-column justify-content-between">
+        
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <span class="small fw-bold text-uppercase text-warning font-monospace d-flex align-items-center gap-1.5">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+            </svg>
+            Venue Verification Token
+          </span>
+          {% if session_obj.is_active %}
+            <span class="live-pulse-dot"></span>
+          {% endif %}
+        </div>
+
+        <div class="my-4 text-center">
+          <div class="code-display-digit display-3 py-2 user-select-all">
+            {{ session_obj.access_code }}
+          </div>
+          <p class="text-secondary small mb-0 mt-2">Display this 4-digit code on the venue screen / chalkboard</p>
+        </div>
+
+        <div class="pt-3 border-top border-secondary border-opacity-25 d-flex align-items-center justify-content-between small text-secondary">
+          <div class="d-flex align-items-center gap-1.5">
+            <svg width="14" height="14" class="text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {% if session_obj.is_active %}
+              <span>Window closes <strong class="text-white">{{ session_obj.window_expires_at(window_minutes).strftime('%H:%M') }}</strong></span>
+            {% else %}
+              <span class="text-secondary">Session closed</span>
+            {% endif %}
+          </div>
+
+          <button onclick="navigator.clipboard.writeText('{{ session_obj.access_code }}'); this.innerText='Copied!'; setTimeout(() => this.innerText='Copy Code', 2000);"
+                  class="btn btn-sm btn-outline-light py-0 px-2 font-monospace" style="font-size: 0.6875rem;">
+            Copy Code
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Attendance Percentage & Overview (Right) -->
+    <div class="col-12 col-lg-7">
+      <div class="row g-3 h-100">
+        
+        <!-- Present Metric Card -->
+        <div class="col-12 col-sm-6">
+          <div class="glass-panel hover-elevate p-4 h-100 d-flex flex-column justify-content-between">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <span class="small fw-bold text-secondary text-uppercase" style="font-size: 0.6875rem;">Verified Present</span>
+              <div class="avatar-circle avatar-circle-emerald" style="width: 32px; height: 32px;">
+                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+            </div>
+            
+            <div class="my-3">
+              <div class="d-flex align-items-baseline gap-2">
+                <span class="font-display display-5 fw-bolder text-success">{{ present|length }}</span>
+                <span class="text-muted small">faculty members</span>
+              </div>
+              {% set total_faculty = (present|length + absent|length) %}
+              {% set pct = ((present|length / total_faculty) * 100)|round|int if total_faculty > 0 else 0 %}
+              <div class="mt-3">
+                <div class="d-flex justify-content-between small fw-semibold text-secondary mb-1">
+                  <span>Attendance Rate</span>
+                  <span class="text-success">{{ pct }}%</span>
+                </div>
+                <div class="progress" style="height: 6px;">
+                  <div class="progress-bar bg-success" role="progressbar" style="width: {{ pct }}%"></div>
+                </div>
+              </div>
+            </div>
+
+            <p class="text-muted small mb-0" style="font-size: 0.75rem;">Anti-proxy &amp; GPS verified</p>
+          </div>
+        </div>
+
+        <!-- Absent Metric Card -->
+        <div class="col-12 col-sm-6">
+          <div class="glass-panel hover-elevate p-4 h-100 d-flex flex-column justify-content-between">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <span class="small fw-bold text-secondary text-uppercase" style="font-size: 0.6875rem;">Awaiting Check-in</span>
+              <div class="avatar-circle avatar-circle-slate" style="width: 32px; height: 32px; background-color: #FEE2E2; color: #DC2626;">
+                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </div>
+            </div>
+
+            <div class="my-3">
+              <div class="d-flex align-items-baseline gap-2">
+                <span class="font-display display-5 fw-bolder text-danger">{{ absent|length }}</span>
+                <span class="text-muted small">faculty members</span>
+              </div>
+              {% set absent_pct = ((absent|length / total_faculty) * 100)|round|int if total_faculty > 0 else 0 %}
+              <div class="mt-3">
+                <div class="d-flex justify-content-between small fw-semibold text-secondary mb-1">
+                  <span>Unverified Ratio</span>
+                  <span class="text-danger">{{ absent_pct }}%</span>
+                </div>
+                <div class="progress" style="height: 6px;">
+                  <div class="progress-bar bg-danger" role="progressbar" style="width: {{ absent_pct }}%"></div>
+                </div>
+              </div>
+            </div>
+
+            <p class="text-muted small mb-0" style="font-size: 0.75rem;">Pending in-room verification</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Dual Rosters (Present vs Absent) -->
+  <div class="row g-4">
+    
+    <!-- Present Roster -->
+    <div class="col-12 col-lg-6">
+      <div class="d-flex align-items-center justify-content-between mb-2 px-1">
+        <div class="d-flex align-items-center gap-2">
+          <span class="d-inline-block rounded-circle bg-success" style="width: 8px; height: 8px;"></span>
+          <h5 class="font-display fw-bold text-dark mb-0">Verified Present ({{ present|length }})</h5>
+        </div>
+        <span class="text-muted small">Device &amp; GPS Audit</span>
+      </div>
+
+      <div class="glass-panel overflow-hidden shadow-sm">
+        <div class="list-group list-group-flush">
+          {% for t in present %}
+          {% set rec = records_by_user[t.id] %}
+          <div class="list-group-item d-flex align-items-center justify-content-between p-3 border-slate-100 bg-transparent">
+            <div class="d-flex align-items-center gap-3">
+              <div class="avatar-circle avatar-circle-emerald">
+                {{ t.name[:2]|upper }}
+              </div>
+              <div>
+                <p class="small fw-bold text-dark mb-0 d-flex align-items-center gap-1.5 flex-wrap">
+                  <span>{{ t.name }}</span>
+                  {% if t.role == 'admin' %}
+                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle font-monospace" style="font-size: 0.625rem;">Host Coordinator</span>
+                  {% endif %}
+                </p>
+                <div class="text-muted small d-flex align-items-center gap-2 mt-0.5" style="font-size: 0.6875rem;">
+                  <span>{{ t.department or "General Faculty" }}</span>
+                  {% if rec.device_id %}
+                    <span>&bull;</span>
+                    <span class="font-monospace text-primary">Dev: #{{ rec.device_id.split(':')[0][4:10] }}</span>
+                  {% endif %}
+                  {% if rec.distance_meters is not none %}
+                    <span>&bull;</span>
+                    <span class="font-monospace text-success">{{ rec.distance_meters|round|int }}m from venue</span>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            <div class="text-end d-flex align-items-center gap-2">
+              <div>
+                <span class="font-monospace small fw-bold text-success bg-success-subtle px-2 py-0.5 rounded border border-success-subtle">
+                  {{ rec.check_in_timestamp.strftime('%H:%M:%S') }}
+                </span>
+                <p class="text-muted mb-0 mt-0.5 font-monospace" style="font-size: 0.625rem;">
+                  {% if rec.device_id and 'Manual Override' in rec.device_id %}
+                    <span class="text-primary fw-semibold">Coordinator Override</span>
+                  {% else %}
+                    Verified OTP
+                  {% endif %}
+                </p>
+              </div>
+
+              {% if t.id != current_user.id %}
+                <form method="POST" action="{{ url_for('admin.revoke_checkin', session_id=session_obj.id, user_id=t.id) }}" onsubmit="return confirm('Revoke attendance for {{ t.name }} and restore to absent status?');" class="d-inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-sm btn-outline-danger py-1 px-1.5 rounded-2 small" title="Revoke attendance record">
+                    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </form>
+              {% endif %}
+            </div>
+          </div>
+          {% else %}
+          <div class="p-4 text-center text-muted small">
+            No educator check-ins recorded yet for this session.
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Absent Roster -->
+    <div class="col-12 col-lg-6">
+      <div class="d-flex align-items-center justify-content-between mb-2 px-1">
+        <div class="d-flex align-items-center gap-2">
+          <span class="d-inline-block rounded-circle bg-danger" style="width: 8px; height: 8px;"></span>
+          <h5 class="font-display fw-bold text-dark mb-0">Awaiting Check-in ({{ absent|length }})</h5>
+        </div>
+        <span class="text-muted small">Unverified Faculty</span>
+      </div>
+
+      <div class="glass-panel overflow-hidden shadow-sm">
+        <div class="list-group list-group-flush">
+          {% for t in absent %}
+          <div class="list-group-item d-flex align-items-center justify-content-between p-3 border-slate-100 bg-transparent">
+            <div class="d-flex align-items-center gap-3">
+              <div class="avatar-circle avatar-circle-slate">
+                {{ t.name[:2]|upper }}
+              </div>
+              <div>
+                <p class="small fw-semibold text-dark mb-0">{{ t.name }}</p>
+                <p class="text-muted mb-0" style="font-size: 0.75rem;">{{ t.department or "General Faculty" }}</p>
+              </div>
+            </div>
+
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge bg-secondary-subtle text-secondary font-monospace d-none d-sm-inline-block">
+                Pending
+              </span>
+
+              <form method="POST" action="{{ url_for('admin.manual_checkin', session_id=session_obj.id, user_id=t.id) }}" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-sm btn-outline-success rounded-2 py-1 px-2.5 small fw-semibold d-inline-flex align-items-center gap-1" title="Assist educator: Confirm presence manually">
+                  <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>Manual Verify</span>
+                </button>
+              </form>
+            </div>
+          </div>
+          {% else %}
+          <div class="p-4 text-center text-muted small">
+            All registered educators have checked in to this session.
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+{% block title %}Session Dashboard{% endblock %}
+
+{% block content %}
+<div class="space-y-4">
+
+  <!-- Executive Header & Actions -->
+  <div class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3 pb-3 mb-4 border-bottom border-slate-200">
+    <div>
+      <div class="d-flex align-items-center gap-2">
+        <h1 class="font-display h3 fw-bolder text-dark mb-0">Coordinator Dashboard</h1>
+        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle font-monospace small">Admin Portal</span>
+      </div>
+      <p class="text-secondary small mb-0 mt-1">Manage PLC sessions, monitor live verification codes, and export compliance audits.</p>
+    </div>
+
+    <div class="d-flex align-items-center gap-2">
+      <a href="{{ url_for('admin.users_list') }}" class="btn btn-sm btn-outline-dark rounded-2 py-2 px-3 fw-semibold d-inline-flex align-items-center gap-1.5">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+        </svg>
+        <span>Manage Directory</span>
+        {% if pending_users_count and pending_users_count > 0 %}
+          <span class="badge bg-danger rounded-pill font-monospace">{{ pending_users_count }}</span>
+        {% endif %}
+      </a>
+
+      <a href="{{ url_for('admin.new_session') }}" class="btn-gold-custom py-2 px-3 small">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+        </svg>
+        <span>Open New Session</span>
+      </a>
+    </div>
+  </div>
+
+  {% if pending_users_count and pending_users_count > 0 %}
+  <div class="alert alert-warning border-0 shadow-sm rounded-3 p-3 mb-4 d-flex align-items-center justify-content-between flex-wrap gap-2 animate-fade-in-down">
+    <div class="d-flex align-items-center gap-2.5">
+      <div class="avatar-circle avatar-circle-gold" style="width: 32px; height: 32px;">
+        <span class="live-pulse-dot"></span>
+      </div>
+      <div>
+        <p class="small fw-bold text-dark mb-0">Pending Educator Registrations ({{ pending_users_count }})</p>
+        <p class="text-secondary small mb-0" style="font-size: 0.75rem;">There are new faculty members awaiting administrator approval before they can log in.</p>
+      </div>
+    </div>
+    <a href="{{ url_for('admin.users_list') }}" class="btn btn-sm btn-dark rounded-2 py-1 px-3 small fw-semibold">
+      Review &amp; Approve Users &rarr;
+    </a>
+  </div>
+  {% endif %}
+
+  <!-- Metric Statistics Cards -->
+  <div class="row row-cols-2 row-cols-lg-4 g-3 mb-4">
+    
+    <!-- Registered Teachers -->
+    <div class="col">
+      <div class="glass-panel hover-elevate p-3 p-sm-4 h-100">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <span class="small fw-bold text-secondary text-uppercase" style="font-size: 0.6875rem;">Registered Faculty</span>
+          <div class="avatar-circle avatar-circle-slate" style="width: 32px; height: 32px; background-color: #EEF2FF; color: #4F46E5;">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+          </div>
+        </div>
+        <p class="font-display h2 fw-bolder text-dark mb-0">{{ total_teachers }}</p>
+        <p class="text-muted small mb-0" style="font-size: 0.75rem;">Eligible faculty members</p>
+      </div>
+    </div>
+
+    <!-- Active Sessions Count -->
+    {% set active_count = sessions|selectattr('is_active')|list|length %}
+    <div class="col">
+      <div class="glass-panel hover-elevate p-3 p-sm-4 h-100">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <span class="small fw-bold text-secondary text-uppercase" style="font-size: 0.6875rem;">Live Active</span>
+          <div class="avatar-circle avatar-circle-emerald" style="width: 32px; height: 32px;">
+            <span class="live-pulse-dot"></span>
+          </div>
+        </div>
+        <p class="font-display h2 fw-bolder text-success mb-0">{{ active_count }}</p>
+        <p class="text-muted small mb-0" style="font-size: 0.75rem;">Accepting check-ins now</p>
+      </div>
+    </div>
+
+    <!-- Total Sessions Conducted -->
+    <div class="col">
+      <div class="glass-panel hover-elevate p-3 p-sm-4 h-100">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <span class="small fw-bold text-secondary text-uppercase" style="font-size: 0.6875rem;">Total Sessions</span>
+          <div class="avatar-circle avatar-circle-gold" style="width: 32px; height: 32px;">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </div>
+        </div>
+        <p class="font-display h2 fw-bolder text-dark mb-0">{{ sessions|length }}</p>
+        <p class="text-muted small mb-0" style="font-size: 0.75rem;">Historical sessions</p>
+      </div>
+    </div>
+
+    <!-- Total Verified Logs -->
+    {% set total_checkins = namespace(count=0) %}
+    {% for s in sessions %}
+      {% set total_checkins.count = total_checkins.count + (s.attendance|length) %}
+    {% endfor %}
+    <div class="col">
+      <div class="glass-panel hover-elevate p-3 p-sm-4 h-100">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <span class="small fw-bold text-secondary text-uppercase" style="font-size: 0.6875rem;">Verified Attendances</span>
+          <div class="avatar-circle avatar-circle-slate" style="width: 32px; height: 32px;">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+        </div>
+        <p class="font-display h2 fw-bolder text-dark mb-0">{{ total_checkins.count }}</p>
+        <p class="text-muted small mb-0" style="font-size: 0.75rem;">Total verified records</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Sessions Data Table -->
+  <div>
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <h4 class="font-display fw-bold text-dark mb-0">Session Ledger</h4>
+      <span class="text-muted small">{{ sessions|length }} session{{ 's' if sessions|length != 1 else '' }}</span>
+    </div>
+
+    {% if sessions %}
+    <div class="glass-panel overflow-hidden shadow-sm">
+      <div class="table-responsive">
+        <table class="table-premium">
+          <thead>
+            <tr>
+              <th>Session Topic &amp; Department</th>
+              <th>Date &amp; Schedule</th>
+              <th>Status</th>
+              <th>Present Ratio</th>
+              <th>Venue Code</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in sessions %}
+            <tr>
+              <!-- Topic -->
+              <td>
+                <div class="fw-bold text-dark">{{ s.title }}</div>
+                <div class="text-muted small d-flex align-items-center gap-1 mt-0.5" style="font-size: 0.75rem;">
+                  <span class="d-inline-block rounded-circle bg-secondary" style="width: 6px; height: 6px;"></span>
+                  {{ s.department or "All Academic Departments" }}
+                </div>
+              </td>
+
+              <!-- Date -->
+              <td class="text-nowrap">
+                <div class="fw-semibold text-dark small">{{ s.date.strftime('%d %b %Y') }}</div>
+                <div class="text-muted small" style="font-size: 0.75rem;">{{ s.date.strftime('%H:%M') }} &middot; {{ s.duration_minutes }} min</div>
+              </td>
+
+              <!-- Status -->
+              <td class="text-nowrap">
+                {% if s.is_active %}
+                  <span class="badge-status-open">
+                    <span class="live-pulse-dot"></span>
+                    Active Window
+                  </span>
+                {% else %}
+                  <span class="badge-status-closed">
+                    Concluded
+                  </span>
+                {% endif %}
+              </td>
+
+              <!-- Present Ratio -->
+              <td class="text-nowrap">
+                <div class="d-flex align-items-center gap-2 mb-1">
+                  <span class="font-display fw-bold text-dark">{{ s.attendance|length }}</span>
+                  <span class="text-muted small">/ {{ total_teachers }} faculty</span>
+                </div>
+                {% set pct = (s.attendance|length / total_teachers * 100) if total_teachers > 0 else 0 %}
+                <div class="progress" style="height: 5px; width: 100px;">
+                  <div class="progress-bar bg-warning" role="progressbar" style="width: {{ pct }}%"></div>
+                </div>
+              </td>
+
+              <!-- Code -->
+              <td class="text-nowrap">
+                <span class="font-monospace fw-bold px-2 py-1 bg-dark text-warning rounded small border border-secondary border-opacity-25" style="letter-spacing: 0.15em;">
+                  {{ s.access_code }}
+                </span>
+              </td>
+
+              <!-- Actions -->
+              <td class="text-end text-nowrap">
+                <div class="d-inline-flex align-items-center gap-1.5">
+                  <a href="{{ url_for('admin.session_detail', session_id=s.id) }}"
+                     class="btn btn-sm btn-outline-dark rounded-2 py-1 px-2.5 small fw-semibold" title="View & Manage">
+                    <span>Manage</span>
+                    <svg width="14" height="14" class="ms-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </a>
+
+                  <a href="{{ url_for('admin.edit_session', session_id=s.id) }}"
+                     class="btn btn-sm btn-outline-secondary rounded-2 py-1 px-2 small" title="Edit Session">
+                    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </a>
+
+                  <form method="POST" action="{{ url_for('admin.delete_session', session_id=s.id) }}" onsubmit="return confirm('Are you sure you want to permanently delete this session and all associated attendance records?');" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-2 py-1 px-2 small" title="Delete Session">
+                      <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% else %}
+    <div class="glass-panel p-5 text-center border-2 border-dashed">
+      <div class="avatar-circle avatar-circle-slate mx-auto mb-3" style="width: 48px; height: 48px;">
+        <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+        </svg>
+      </div>
+      <h4 class="font-display fw-bold text-dark mb-1">No PLC Sessions Initialized</h4>
+      <p class="text-secondary small max-w-sm mx-auto mb-4">Open your first PLC session to generate an in-room verification code and begin tracking attendance.</p>
+      <a href="{{ url_for('admin.new_session') }}" class="btn-gold-custom">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+        </svg>
+        <span>Open First Session</span>
+      </a>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

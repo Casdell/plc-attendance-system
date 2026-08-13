@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block title %}Verify Attendance &middot; {{ session_obj.title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center py-4">
+  <div class="col-12 col-md-8 col-lg-5">
+
+    <!-- Breadcrumb -->
+    <div class="mb-3">
+      <a href="{{ url_for('teacher.dashboard') }}" class="text-secondary small fw-semibold text-decoration-none d-inline-flex align-items-center gap-1">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+        </svg>
+        <span>Back to Active Sessions</span>
+      </a>
+    </div>
+
+    <div class="glass-panel position-relative overflow-hidden p-4 p-sm-5 shadow-lg text-center">
+      <div class="card-top-line"></div>
+
+      <!-- Session Badge & Details -->
+      <div class="mb-4">
+        <span class="badge-compliance mb-2">
+          <span class="live-pulse-dot"></span>
+          Active Verification Window
+        </span>
+        
+        <p class="text-muted small text-uppercase tracking-wider fw-bold mb-1" style="font-size: 0.6875rem;">Verifying Presence For</p>
+        <h2 class="font-display fw-bolder text-dark mb-1">{{ session_obj.title }}</h2>
+        <p class="text-muted small mb-0">{{ session_obj.department or "All School Departments" }} &middot; Opened {{ session_obj.opened_at.strftime('%H:%M') }}</p>
+      </div>
+
+      <!-- Security Status Bar (Geofence & Device Fingerprint) -->
+      <div class="p-3 bg-light rounded-3 border border-slate-200 text-start mb-4">
+        <div class="d-flex align-items-center justify-content-between mb-2 pb-2 border-bottom border-slate-200">
+          <span class="small fw-bold text-dark text-uppercase tracking-wider" style="font-size: 0.6875rem;">Security Integrity Protocols</span>
+          <span class="badge bg-secondary-subtle text-dark font-monospace" id="deviceBadge" style="font-size: 0.625rem;">Device ID: Binding...</span>
+        </div>
+        
+        <div class="d-flex flex-column gap-1.5 small text-secondary" style="font-size: 0.75rem;">
+          <div class="d-flex align-items-center justify-content-between">
+            <span class="d-flex align-items-center gap-1.5">
+              <svg width="14" height="14" class="text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span>GPS Geofence Perimeter</span>
+            </span>
+            <span id="gpsBadge" class="font-monospace text-muted fw-bold">Querying GPS...</span>
+          </div>
+
+          <div class="d-flex align-items-center justify-content-between">
+            <span class="d-flex align-items-center gap-1.5">
+              <svg width="14" height="14" class="text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+              <span>Anti-Proxy Device Lock</span>
+            </span>
+            <span class="font-monospace text-success fw-bold">Single-Use Active</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Check-in Form -->
+      <form method="POST" novalidate id="checkinForm" class="d-flex flex-column gap-3">
+        {{ form.hidden_tag() }}
+
+        <!-- Hidden Device ID and Coordinates -->
+        {{ form.device_id(id="hidden_device_id") }}
+        {{ form.latitude(id="hidden_teacher_lat") }}
+        {{ form.longitude(id="hidden_teacher_lng") }}
+
+        <div>
+          <label for="{{ form.access_code.id }}" class="form-label-premium text-center d-block mb-2">
+            Enter 4-Digit Venue Code
+          </label>
+          
+          {{ form.access_code(class="form-control code-input-field w-100 shadow-sm", maxlength=4, inputmode="numeric", placeholder="••••", autofocus=true) }}
+
+          {% for e in form.access_code.errors %}
+            <div class="text-danger small mt-2 d-flex align-items-center justify-content-center gap-1">
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              {{ e }}
+            </div>
+          {% endfor %}
+        </div>
+
+        <button type="submit" id="btnSubmitCheckin" class="btn-gold-custom w-100 py-3 shadow mt-2">
+          <span>Verify &amp; Confirm Presence</span>
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        </button>
+      </form>
+
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // 1. Client-Side Persistent Unique Device Fingerprint Generator
+  function initDeviceFingerprint() {
+    let deviceUUID = localStorage.getItem('plc_attendance_device_uuid');
+    if (!deviceUUID) {
+      // Generate cryptographic random UUID
+      deviceUUID = 'dev-' + ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+        (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+      );
+      localStorage.setItem('plc_attendance_device_uuid', deviceUUID);
+    }
+    
+    // Combine with browser entropy
+    const entropy = `${screen.width}x${screen.height}-${navigator.language}-${new Date().getTimezoneOffset()}`;
+    const fullDeviceId = `${deviceUUID}:${entropy}`;
+    
+    document.getElementById('hidden_device_id').value = fullDeviceId;
+    const badge = document.getElementById('deviceBadge');
+    if (badge) {
+      badge.textContent = `Device: #${deviceUUID.substring(4, 12)}`;
+    }
+  }
+
+  // 2. Client-Side Geolocation Acquisition
+  function initGeolocation() {
+    const gpsBadge = document.getElementById('gpsBadge');
+    const latField = document.getElementById('hidden_teacher_lat');
+    const lngField = document.getElementById('hidden_teacher_lng');
+
+    if (!navigator.geolocation) {
+      gpsBadge.textContent = "GPS Unavailable";
+      gpsBadge.className = "font-monospace text-warning fw-bold";
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        latField.value = pos.coords.latitude;
+        lngField.value = pos.coords.longitude;
+        gpsBadge.textContent = "GPS Locked";
+        gpsBadge.className = "font-monospace text-success fw-bold";
+      },
+      (err) => {
+        gpsBadge.textContent = "GPS Inactive / Denied";
+        gpsBadge.className = "font-monospace text-danger fw-bold";
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+    );
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    initDeviceFingerprint();
+    initGeolocation();
+  });
+</script>
+{% endblock %}

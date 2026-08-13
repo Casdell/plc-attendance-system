@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+{% block title %}User Management &middot; Faculty &amp; Coordinators{% endblock %}
+
+{% block content %}
+<div class="space-y-4">
+
+  <!-- Executive Header -->
+  <div class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3 pb-3 mb-4 border-bottom border-slate-200">
+    <div>
+      <div class="d-flex align-items-center gap-2">
+        <h1 class="font-display h3 fw-bolder text-dark mb-0">User Directory &amp; Access Control</h1>
+        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle font-monospace small">Admin Panel</span>
+      </div>
+      <p class="text-secondary small mb-0 mt-1">Review new educator signups, authorize accounts, reset user credentials, and manage faculty access.</p>
+    </div>
+
+    <div class="d-flex align-items-center gap-2">
+      <a href="{{ url_for('admin.dashboard') }}" class="btn btn-sm btn-outline-dark rounded-2 py-2 px-3 fw-semibold d-inline-flex align-items-center gap-1.5">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+        </svg>
+        <span>Back to Dashboard</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Metric Statistics Cards -->
+  <div class="row row-cols-2 row-cols-lg-4 g-3 mb-4">
+    
+    <!-- Total Users -->
+    <div class="col">
+      <div class="glass-panel hover-elevate p-3 p-sm-4 h-100">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <span class="small fw-bold text-secondary text-uppercase" style="font-size: 0.6875rem;">Total Directory</span>
+          <div class="avatar-circle avatar-circle-slate" style="width: 32px; height: 32px; background-color: #EEF2FF; color: #4F46E5;">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+          </div>
+        </div>
+        <p class="font-display h2 fw-bolder text-dark mb-0">{{ users|length }}</p>
+        <p class="text-muted small mb-0" style="font-size: 0.75rem;">Registered accounts</p>
+      </div>
+    </div>
+
+    <!-- Pending Approvals -->
+    <div class="col">
+      <div class="glass-panel hover-elevate p-3 p-sm-4 h-100 {% if pending_users %}border-warning{% endif %}">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <span class="small fw-bold text-secondary text-uppercase" style="font-size: 0.6875rem;">Pending Approval</span>
+          <div class="avatar-circle avatar-circle-gold" style="width: 32px; height: 32px;">
+            {% if pending_users %}
+              <span class="live-pulse-dot"></span>
+            {% else %}
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            {% endif %}
+          </div>
+        </div>
+        <p class="font-display h2 fw-bolder {% if pending_users %}text-warning-emphasis{% else %}text-dark{% endif %} mb-0">{{ pending_users|length }}</p>
+        <p class="text-muted small mb-0" style="font-size: 0.75rem;">Awaiting coordinator review</p>
+      </div>
+    </div>
+
+    <!-- Active Teachers -->
+    <div class="col">
+      <div class="glass-panel hover-elevate p-3 p-sm-4 h-100">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <span class="small fw-bold text-secondary text-uppercase" style="font-size: 0.6875rem;">Active Faculty</span>
+          <div class="avatar-circle avatar-circle-emerald" style="width: 32px; height: 32px;">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+          </div>
+        </div>
+        <p class="font-display h2 fw-bolder text-success mb-0">{{ active_teachers|length }}</p>
+        <p class="text-muted small mb-0" style="font-size: 0.75rem;">Authorized educators</p>
+      </div>
+    </div>
+
+    <!-- Coordinators -->
+    <div class="col">
+      <div class="glass-panel hover-elevate p-3 p-sm-4 h-100">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <span class="small fw-bold text-secondary text-uppercase" style="font-size: 0.6875rem;">Administrators</span>
+          <div class="avatar-circle avatar-circle-slate" style="width: 32px; height: 32px;">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+          </div>
+        </div>
+        <p class="font-display h2 fw-bolder text-dark mb-0">{{ admins|length }}</p>
+        <p class="text-muted small mb-0" style="font-size: 0.75rem;">PLC coordinators</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- User Ledger with Tabs -->
+  <div class="glass-panel overflow-hidden shadow-sm">
+    
+    <!-- Tab Navigation Header -->
+    <div class="p-3 bg-light border-bottom border-slate-200 d-flex align-items-center justify-content-between flex-wrap gap-2">
+      <ul class="nav nav-pills gap-1" id="userTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link active py-1.5 px-3 small fw-semibold rounded-2" id="all-tab" data-bs-toggle="tab" data-bs-target="#all-users" type="button" role="tab">
+            All Accounts ({{ users|length }})
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link py-1.5 px-3 small fw-semibold rounded-2 position-relative" id="pending-tab" data-bs-toggle="tab" data-bs-target="#pending-users" type="button" role="tab">
+            <span>Pending Approvals</span>
+            {% if pending_users %}
+              <span class="badge bg-danger rounded-pill ms-1.5 font-monospace">{{ pending_users|length }}</span>
+            {% else %}
+              <span class="text-muted ms-1 small">(0)</span>
+            {% endif %}
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link py-1.5 px-3 small fw-semibold rounded-2" id="faculty-tab" data-bs-toggle="tab" data-bs-target="#faculty-users" type="button" role="tab">
+            Active Faculty ({{ active_teachers|length }})
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link py-1.5 px-3 small fw-semibold rounded-2" id="admin-tab" data-bs-toggle="tab" data-bs-target="#admin-users" type="button" role="tab">
+            Coordinators ({{ admins|length }})
+          </button>
+        </li>
+      </ul>
+
+      <span class="text-muted small font-monospace d-none d-md-inline">Live Directory Sync</span>
+    </div>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="userTabsContent">
+      
+      <!-- Tab 1: All Users -->
+      <div class="tab-pane fade show active" id="all-users" role="tabpanel">
+        {% with user_list=users %}
+          {% include "admin/_user_table.html" %}
+        {% endwith %}
+      </div>
+
+      <!-- Tab 2: Pending Approvals -->
+      <div class="tab-pane fade" id="pending-users" role="tabpanel">
+        {% with user_list=pending_users %}
+          {% include "admin/_user_table.html" %}
+        {% endwith %}
+      </div>
+
+      <!-- Tab 3: Active Faculty -->
+      <div class="tab-pane fade" id="faculty-users" role="tabpanel">
+        {% with user_list=active_teachers %}
+          {% include "admin/_user_table.html" %}
+        {% endwith %}
+      </div>
+
+      <!-- Tab 4: Admins -->
+      <div class="tab-pane fade" id="admin-users" role="tabpanel">
+        {% with user_list=admins %}
+          {% include "admin/_user_table.html" %}
+        {% endwith %}
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+<!-- Reset Password Modal -->
+<div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-labelledby="resetPasswordModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content glass-panel border-0 shadow-lg overflow-hidden">
+      <div class="card-top-line"></div>
+      
+      <div class="modal-header border-bottom border-slate-200 p-4 pb-3">
+        <div class="d-flex align-items-center gap-2">
+          <div class="avatar-circle avatar-circle-gold" style="width: 32px; height: 32px;">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+            </svg>
+          </div>
+          <div>
+            <h5 class="modal-title font-display fw-bold text-dark mb-0" id="resetPasswordModalLabel">Reset User Password</h5>
+            <p class="text-muted small mb-0" id="modalTargetUserText">Target Account</p>
+          </div>
+        </div>
+        <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <form method="POST" id="resetPasswordForm" action="">
+        <div class="modal-body p-4 space-y-3">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+          <div>
+            <label for="new_password" class="form-label-premium">New Password (Min 8 Characters)</label>
+            <input type="password" name="new_password" id="new_password" required minlength="8" class="form-control form-control-premium" placeholder="Enter new secure password">
+          </div>
+
+          <div>
+            <label for="confirm_password" class="form-label-premium">Confirm New Password</label>
+            <input type="password" name="confirm_password" id="confirm_password" required minlength="8" class="form-control form-control-premium" placeholder="Re-enter password to confirm">
+          </div>
+
+          <p class="text-muted small mb-0" style="font-size: 0.75rem;">
+            The password will be immediately hashed and updated in the database. Provide the new password to the educator securely.
+          </p>
+        </div>
+
+        <div class="modal-footer border-top border-slate-200 p-3 bg-light d-flex justify-content-between">
+          <button type="button" class="btn btn-sm btn-outline-secondary py-2 px-3 fw-semibold" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn-gold-custom py-2 px-4 small">
+            <span>Confirm &amp; Reset Password</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openResetPasswordModal(userId, userName, userEmail) {
+    const form = document.getElementById('resetPasswordForm');
+    form.action = `/admin/users/${userId}/reset-password`;
+    document.getElementById('modalTargetUserText').textContent = `${userName} (${userEmail})`;
+    document.getElementById('new_password').value = '';
+    document.getElementById('confirm_password').value = '';
+    const modal = new bootstrap.Modal(document.getElementById('resetPasswordModal'));
+    modal.show();
+  }
+</script>
+{% endblock %}

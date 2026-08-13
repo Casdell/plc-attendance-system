@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+{% block title %}Authentic Presence Verification{% endblock %}
+
+{% block content %}
+<div class="py-2 py-lg-4">
+
+  <!-- Hero Section -->
+  <div class="row align-items-center g-4 g-lg-5 mb-5">
+    
+    <!-- Hero Text & CTA -->
+    <div class="col-12 col-lg-7">
+      <div class="d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-pill bg-warning-subtle text-warning-emphasis border border-warning-subtle small fw-bold text-uppercase tracking-wider mb-3">
+        <span class="d-inline-block rounded-circle bg-warning" style="width: 8px; height: 8px;"></span>
+        Ghana Education Service &middot; Anti-Proxy Protocol
+      </div>
+
+      <h1 class="font-display display-5 fw-bolder text-dark tracking-tight lh-tight mb-3">
+        Authentic Teacher Presence.<br>
+        <span class="text-warning">
+          Verified in Real-Time.
+        </span>
+      </h1>
+
+      <p class="lead text-secondary fs-6 mb-4">
+        Eliminate fraudulent chalkboard sign-ins. Every PLC attendance record is verified through an authenticated teacher account and a live, time-restricted 4-digit token generated only inside the session venue.
+      </p>
+
+      <div class="d-flex flex-wrap align-items-center gap-3 mb-5">
+        {% if current_user.is_authenticated %}
+          <a href="{{ url_for('admin.dashboard') if current_user.is_admin else url_for('teacher.dashboard') }}"
+             class="btn-gold-custom py-3 px-4 fs-6">
+            <span>Enter My Dashboard</span>
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            </svg>
+          </a>
+        {% else %}
+          <a href="{{ url_for('auth.register') }}"
+             class="btn-gold-custom py-3 px-4 fs-6">
+            <span>Create Educator Account</span>
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            </svg>
+          </a>
+          <a href="{{ url_for('auth.login') }}"
+             class="btn-secondary-custom py-3 px-4 fs-6">
+            Educator &amp; Admin Login
+          </a>
+        {% endif %}
+      </div>
+
+      <!-- Trust Metrics -->
+      <div class="row g-3 pt-3 border-top border-slate-200">
+        <div class="col-4">
+          <p class="font-display fs-3 fw-bold text-dark mb-0">100%</p>
+          <p class="small text-muted mb-0">Authenticity Rate</p>
+        </div>
+        <div class="col-4">
+          <p class="font-display fs-3 fw-bold text-dark mb-0">4-Digit</p>
+          <p class="small text-muted mb-0">Venue OTP Code</p>
+        </div>
+        <div class="col-4">
+          <p class="font-display fs-3 fw-bold text-dark mb-0">0 sec</p>
+          <p class="small text-muted mb-0">Manual Roll-Call</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live Simulation Card -->
+    <div class="col-12 col-lg-5">
+      <div class="glass-panel-dark p-4 p-sm-5 text-white position-relative overflow-hidden">
+        
+        <div class="d-flex align-items-center justify-content-between border-bottom border-secondary border-opacity-25 pb-3 mb-4">
+          <div class="d-flex align-items-center gap-2">
+            <span class="live-pulse-dot"></span>
+            <span class="small fw-bold text-success text-uppercase tracking-wider">Live PLC Session</span>
+          </div>
+          <span class="badge bg-secondary bg-opacity-25 font-monospace">Room A-102</span>
+        </div>
+
+        <div class="mb-4">
+          <p class="text-secondary small text-uppercase tracking-wider fw-semibold mb-1">Active Topic</p>
+          <h4 class="font-display fw-bold text-white mb-0">STEM Pedagogical Integration in Senior High Math</h4>
+        </div>
+
+        <!-- Code Showcase -->
+        <div class="code-hero-box p-4 text-center mb-4">
+          <p class="small text-warning text-uppercase tracking-wider fw-semibold mb-1">Venue Verification Code</p>
+          <div class="code-display-digit fs-1 my-2">
+            7 4 9 2
+          </div>
+          <div class="d-flex align-items-center justify-content-center gap-2 small text-secondary">
+            <svg width="14" height="14" class="text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>Window closes in <strong class="text-white">18:42</strong></span>
+          </div>
+        </div>
+
+        <!-- Live Feed Item -->
+        <div class="p-3 bg-secondary bg-opacity-10 rounded-3 border border-secondary border-opacity-25 d-flex align-items-center justify-content-between">
+          <div class="d-flex align-items-center gap-3">
+            <div class="avatar-circle avatar-circle-emerald" style="width: 32px; height: 32px; font-size: 0.75rem;">
+              KO
+            </div>
+            <div>
+              <p class="small fw-bold text-white mb-0">Kwame Owusu</p>
+              <p class="text-secondary mb-0" style="font-size: 0.6875rem;">Mathematics Dept &middot; Just verified</p>
+            </div>
+          </div>
+          <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 font-monospace">
+            Present
+          </span>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- How It Works Sequence -->
+  <div class="pt-4">
+    <div class="text-center max-w-xl mx-auto mb-4">
+      <h2 class="font-display fw-bold text-dark">Four-Stage Integrity Architecture</h2>
+      <p class="text-secondary small">Every check-in is cryptographically timestamped and non-editable.</p>
+    </div>
+
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-3 g-lg-4">
+      
+      <!-- Step 1 -->
+      <div class="col">
+        <div class="glass-panel hover-elevate p-4 h-100 d-flex flex-column justify-content-between">
+          <div>
+            <div class="avatar-circle avatar-circle-gold mb-3 font-display fs-6">
+              01
+            </div>
+            <h5 class="font-display fw-bold text-dark mb-2">Session Opened</h5>
+            <p class="text-secondary small mb-0">
+              The coordinator opens a live session. A rolling 4-digit code is immediately displayed at the physical venue.
+            </p>
+          </div>
+          <div class="mt-3 pt-3 border-top border-slate-100 text-warning small fw-semibold">
+            Venue Token Generated
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="col">
+        <div class="glass-panel hover-elevate p-4 h-100 d-flex flex-column justify-content-between">
+          <div>
+            <div class="avatar-circle avatar-circle-slate mb-3 font-display fs-6" style="background-color: #EEF2FF; color: #4F46E5;">
+              02
+            </div>
+            <h5 class="font-display fw-bold text-dark mb-2">Teacher Login</h5>
+            <p class="text-secondary small mb-0">
+              The teacher logs in to their authenticated account using their mobile device or laptop in the room.
+            </p>
+          </div>
+          <div class="mt-3 pt-3 border-top border-slate-100 text-primary small fw-semibold">
+            Identity Authenticated
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="col">
+        <div class="glass-panel hover-elevate p-4 h-100 d-flex flex-column justify-content-between">
+          <div>
+            <div class="avatar-circle avatar-circle-emerald mb-3 font-display fs-6">
+              03
+            </div>
+            <h5 class="font-display fw-bold text-dark mb-2">Token Verification</h5>
+            <p class="text-secondary small mb-0">
+              The teacher inputs the venue code. The system validates the code against the active time window.
+            </p>
+          </div>
+          <div class="mt-3 pt-3 border-top border-slate-100 text-success small fw-semibold">
+            Time Window Enforced
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 4 -->
+      <div class="col">
+        <div class="glass-panel hover-elevate p-4 h-100 d-flex flex-column justify-content-between">
+          <div>
+            <div class="avatar-circle avatar-circle-slate mb-3 font-display fs-6">
+              04
+            </div>
+            <h5 class="font-display fw-bold text-dark mb-2">Immutable Lock</h5>
+            <p class="text-secondary small mb-0">
+              Attendance is permanently timestamped with unique constraints preventing duplicate or proxy submissions.
+            </p>
+          </div>
+          <div class="mt-3 pt-3 border-top border-slate-100 text-secondary small fw-semibold">
+            Instant CSV Audit Report
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+{% endblock %}
