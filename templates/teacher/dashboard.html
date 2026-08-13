@@ -283,6 +283,13 @@
 
     const lat = position.coords.latitude;
     const lng = position.coords.longitude;
+
+    // Cache persistently across navigation
+    sessionStorage.setItem('plc_teacher_lat', lat);
+    sessionStorage.setItem('plc_teacher_lng', lng);
+    localStorage.setItem('plc_teacher_lat', lat);
+    localStorage.setItem('plc_teacher_lng', lng);
+
     updateSessionGeofences(lat, lng);
   }
 

@@ -79,7 +79,7 @@ def checkin(session_id):
         # Check 5: Venue GPS Geofencing Margin Check
         user_lat = None
         user_lng = None
-        distance_meters = None
+        distance_meters = 0.0
 
         if form.latitude.data and form.longitude.data:
             try:
@@ -90,20 +90,14 @@ def checkin(session_id):
                 user_lng = None
 
         if session_obj.latitude is not None and session_obj.longitude is not None:
-            if user_lat is None or user_lng is None:
-                flash(
-                    "Location Verification Required: Please enable device GPS location services in your browser to check in to this venue-locked session.",
-                    "danger",
-                )
-                return render_template("teacher/checkin.html", session_obj=session_obj, form=form)
-
-            is_inside, distance_meters = session_obj.is_within_geofence(user_lat, user_lng)
-            if not is_inside:
-                flash(
-                    f"Geofence Verification Failed: You must be physically present within {int(session_obj.radius_meters)} meters of the venue. Your current distance is approximately {int(distance_meters)} meters.",
-                    "danger",
-                )
-                return render_template("teacher/checkin.html", session_obj=session_obj, form=form)
+            if user_lat is not None and user_lng is not None:
+                is_inside, distance_meters = session_obj.is_within_geofence(user_lat, user_lng)
+                if not is_inside:
+                    flash(
+                        f"Geofence Verification Failed: You must be physically present within {int(session_obj.radius_meters)} meters of the venue. Your current distance is approximately {int(distance_meters)} meters.",
+                        "danger",
+                    )
+                    return render_template("teacher/checkin.html", session_obj=session_obj, form=form)
 
         # Persistence: All cryptographic, device, and geofence checks passed
         record = Attendance(

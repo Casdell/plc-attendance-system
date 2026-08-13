@@ -185,6 +185,12 @@
     latField.value = userLat;
     lngField.value = userLng;
 
+    // Cache persistently across pages and tabs
+    sessionStorage.setItem('plc_teacher_lat', userLat);
+    sessionStorage.setItem('plc_teacher_lng', userLng);
+    localStorage.setItem('plc_teacher_lat', userLat);
+    localStorage.setItem('plc_teacher_lng', userLng);
+
     if (!venueHasCoords) {
       gpsBadge.textContent = "Open Venue (No Lock)";
       gpsBadge.className = "font-monospace text-info fw-bold";
@@ -248,6 +254,17 @@
 
     const codeInput = document.getElementById('inputAccessCode');
     const submitBtn = document.getElementById('btnSubmitCheckin');
+    const latField = document.getElementById('hidden_teacher_lat');
+    const lngField = document.getElementById('hidden_teacher_lng');
+
+    // Immediately pre-populate from cached coordinates if available
+    const cachedLat = sessionStorage.getItem('plc_teacher_lat') || localStorage.getItem('plc_teacher_lat');
+    const cachedLng = sessionStorage.getItem('plc_teacher_lng') || localStorage.getItem('plc_teacher_lng');
+    if (cachedLat && cachedLng && (!latField.value || !lngField.value)) {
+      latField.value = cachedLat;
+      lngField.value = cachedLng;
+      handleCheckinPosition({ coords: { latitude: parseFloat(cachedLat), longitude: parseFloat(cachedLng) } });
+    }
 
     if (!venueHasCoords) {
       codeInput.disabled = false;
@@ -297,6 +314,8 @@
     const btn = document.getElementById('btnSubmitCheckin');
     const btnText = document.getElementById('btnSubmitText');
     const btnIcon = document.getElementById('btnSubmitIcon');
+    const latField = document.getElementById('hidden_teacher_lat');
+    const lngField = document.getElementById('hidden_teacher_lng');
 
     errBanner.classList.add('d-none');
 
@@ -311,6 +330,16 @@
 
     // Ensure device fingerprint is always populated before form submission
     initDeviceFingerprint();
+
+    // Ensure coordinates are populated from storage if empty
+    if (!latField.value || !lngField.value) {
+      const cachedLat = sessionStorage.getItem('plc_teacher_lat') || localStorage.getItem('plc_teacher_lat');
+      const cachedLng = sessionStorage.getItem('plc_teacher_lng') || localStorage.getItem('plc_teacher_lng');
+      if (cachedLat && cachedLng) {
+        latField.value = cachedLat;
+        lngField.value = cachedLng;
+      }
+    }
 
     // Instant Visual Response: Spinner & Loading state
     btn.disabled = true;
