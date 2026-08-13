@@ -169,11 +169,13 @@
   </div>
 
 </div>
+{% endblock %}
 
-<!-- Reset Password Modal -->
-<div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-labelledby="resetPasswordModalLabel" aria-hidden="true">
+{% block modals %}
+<!-- Reset Password Modal (Rendered outside animated containers) -->
+<div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-labelledby="resetPasswordModalLabel" aria-hidden="true" style="z-index: 1065;">
   <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content glass-panel border-0 shadow-lg overflow-hidden">
+    <div class="modal-content glass-panel border-0 shadow-lg overflow-hidden bg-white" style="position: relative; z-index: 1070;">
       <div class="card-top-line"></div>
       
       <div class="modal-header border-bottom border-slate-200 p-4 pb-3">
@@ -192,17 +194,17 @@
       </div>
 
       <form method="POST" id="resetPasswordForm" action="">
-        <div class="modal-body p-4 space-y-3">
+        <div class="modal-body p-4 space-y-3 text-start">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
           <div>
             <label for="new_password" class="form-label-premium">New Password (Min 8 Characters)</label>
-            <input type="password" name="new_password" id="new_password" required minlength="8" class="form-control form-control-premium" placeholder="Enter new secure password">
+            <input type="password" name="new_password" id="new_password" required minlength="8" class="form-control form-control-premium" placeholder="Enter new secure password" autocomplete="new-password">
           </div>
 
           <div>
             <label for="confirm_password" class="form-label-premium">Confirm New Password</label>
-            <input type="password" name="confirm_password" id="confirm_password" required minlength="8" class="form-control form-control-premium" placeholder="Re-enter password to confirm">
+            <input type="password" name="confirm_password" id="confirm_password" required minlength="8" class="form-control form-control-premium" placeholder="Re-enter password to confirm" autocomplete="new-password">
           </div>
 
           <p class="text-muted small mb-0" style="font-size: 0.75rem;">
@@ -220,16 +222,29 @@
     </div>
   </div>
 </div>
+{% endblock %}
 
+{% block extra_scripts %}
 <script>
   function openResetPasswordModal(userId, userName, userEmail) {
     const form = document.getElementById('resetPasswordForm');
     form.action = `/admin/users/${userId}/reset-password`;
     document.getElementById('modalTargetUserText').textContent = `${userName} (${userEmail})`;
-    document.getElementById('new_password').value = '';
-    document.getElementById('confirm_password').value = '';
-    const modal = new bootstrap.Modal(document.getElementById('resetPasswordModal'));
-    modal.show();
+    
+    const newPassField = document.getElementById('new_password');
+    const confirmPassField = document.getElementById('confirm_password');
+    newPassField.value = '';
+    confirmPassField.value = '';
+
+    const modalEl = document.getElementById('resetPasswordModal');
+    const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+    
+    modalEl.addEventListener('shown.bs.modal', function onShown() {
+      newPassField.focus();
+      modalEl.removeEventListener('shown.bs.modal', onShown);
+    });
+
+    modalInstance.show();
   }
 </script>
 {% endblock %}

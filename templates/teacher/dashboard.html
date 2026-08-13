@@ -14,12 +14,22 @@
       <p class="text-secondary small mb-0 mt-1">Select an active session below and enter the 4-digit code shown at the physical venue.</p>
     </div>
 
-    <a href="{{ url_for('teacher.history') }}" class="btn-secondary-custom py-2 px-3 small">
-      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-      <span>View My Attendance History</span>
-    </a>
+    <div class="d-flex align-items-center gap-2">
+      <!-- Quick GPS Refresh Button -->
+      <button type="button" onclick="acquireGPSAndLoadSessions(true)" id="btnManualRefreshGPS" class="btn btn-sm btn-outline-dark rounded-2 py-2 px-3 fw-semibold d-inline-flex align-items-center gap-1.5 shadow-sm" title="Re-query live device GPS coordinates">
+        <svg id="refreshGpsIcon" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+        <span id="refreshGpsText">Refresh GPS</span>
+      </button>
+
+      <a href="{{ url_for('teacher.history') }}" class="btn btn-sm btn-secondary-custom py-2 px-3 small">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span>Attendance History</span>
+      </a>
+    </div>
   </div>
 
   <!-- GPS Gatekeeper State 1: Requesting / Querying Location -->
@@ -27,9 +37,9 @@
     <div class="spinner-border text-warning mb-3" style="width: 2.5rem; height: 2.5rem;" role="status">
       <span class="visually-hidden">Loading GPS...</span>
     </div>
-    <h4 class="font-display fw-bold text-dark mb-1">Acquiring GPS Location...</h4>
+    <h4 class="font-display fw-bold text-dark mb-1">Acquiring Live GPS Location...</h4>
     <p class="text-secondary small max-w-sm mx-auto mb-0">
-      Please grant location permissions if prompted by your browser. Active PLC sessions are protected by geolocation geofencing.
+      Please grant location permissions if prompted by your browser. Active PLC sessions are protected by live geolocation geofencing.
     </p>
   </div>
 
@@ -47,7 +57,7 @@
       To prevent remote attendance fraud and uphold institutional compliance, active PLC sessions cannot be loaded without active GPS verification.
       Please turn on your device's location services and allow location access in your browser settings.
     </p>
-    <button type="button" onclick="acquireGPSAndLoadSessions()" class="btn-gold-custom py-2.5 px-4">
+    <button type="button" onclick="acquireGPSAndLoadSessions(true)" class="btn-gold-custom py-2.5 px-4">
       <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
         <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
       </svg>
@@ -88,7 +98,7 @@
               <!-- Live Geofence Distance Pill -->
               <span id="rangeBadge-{{ s.id }}" class="badge bg-secondary-subtle text-secondary font-monospace" style="font-size: 0.6875rem;">
                 {% if s.latitude is not none %}
-                  Evaluating GPS Distance...
+                  Evaluating Live GPS Distance...
                 {% else %}
                   Open Venue (No GPS Lock)
                 {% endif %}
@@ -120,7 +130,7 @@
                 </div>
               </div>
             {% else %}
-              <!-- Dynamic Check-in Button Placeholder (Updated via JS based on geofence) -->
+              <!-- Dynamic Check-in Button Placeholder (Updated via Live GPS) -->
               <div id="btnPlaceholder-{{ s.id }}">
                 {% if s.latitude is not none %}
                   <button type="button" disabled class="btn btn-secondary py-2 px-4 small opacity-50 cursor-not-allowed">
@@ -166,9 +176,14 @@
 </div>
 
 <script>
+  let gpsWatchId = null;
+  let gpsPollTimer = null;
+  let lastLat = null;
+  let lastLng = null;
+
   // Haversine Distance Calculation in Meters
   function calculateDistanceMeters(lat1, lon1, lat2, lon2) {
-    const R = 6371000; // Earth radius in meters
+    const R = 6371000;
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
     const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
@@ -178,8 +193,11 @@
     return R * c;
   }
 
-  // Update session cards based on verified GPS coordinates
+  // Update session cards dynamically based on live coordinates
   function updateSessionGeofences(userLat, userLng) {
+    lastLat = userLat;
+    lastLng = userLng;
+
     const cards = document.querySelectorAll('.session-card');
     
     cards.forEach(card => {
@@ -218,14 +236,14 @@
       const isWithin = distance <= radiusMeters;
 
       if (isWithin) {
-        // IN RANGE: Activate "Enter 4-Digit Code" Button
+        // IN RANGE: Dynamically Unlock "Enter 4-Digit Code" Button
         if (rangeBadge) {
           rangeBadge.className = "badge bg-success-subtle text-success-emphasis border border-success-subtle font-monospace";
           rangeBadge.innerHTML = `<span class="d-inline-block rounded-circle bg-success me-1" style="width:6px;height:6px;"></span>In Range (~${Math.round(distance)}m)`;
         }
         if (btnPlaceholder) {
           btnPlaceholder.innerHTML = `
-            <a href="${checkinUrl}" class="btn-gold-custom py-2 px-4 small w-100 w-sm-auto">
+            <a href="${checkinUrl}" class="btn-gold-custom py-2 px-4 small w-100 w-sm-auto animate-fade-in-down">
               <span>Enter 4-Digit Code</span>
               <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
@@ -234,7 +252,7 @@
           `;
         }
       } else {
-        // OUT OF RANGE: Do NOT activate / Lock the button
+        // OUT OF RANGE: Dynamically Lock the Button
         if (rangeBadge) {
           rangeBadge.className = "badge bg-danger-subtle text-danger-emphasis border border-danger-subtle font-monospace";
           rangeBadge.innerHTML = `🚫 Out of Range (~${Math.round(distance)}m away / Max ${Math.round(radiusMeters)}m)`;
@@ -253,51 +271,82 @@
     });
   }
 
-  // Acquire GPS and enforce session visibility
-  function acquireGPSAndLoadSessions() {
+  function handleGPSPosition(position) {
     const loadingCard = document.getElementById('gpsLoadingCard');
     const deniedCard = document.getElementById('gpsDeniedCard');
     const sessionsContainer = document.getElementById('sessionsContainer');
 
-    loadingCard.classList.remove('d-none');
+    loadingCard.classList.add('d-none');
     deniedCard.classList.add('d-none');
-    sessionsContainer.classList.add('d-none');
+    sessionsContainer.classList.remove('d-none');
 
-    if (!navigator.geolocation) {
+    const lat = position.coords.latitude;
+    const lng = position.coords.longitude;
+    updateSessionGeofences(lat, lng);
+  }
+
+  function handleGPSError(error) {
+    // If we haven't acquired coordinates yet, show blocker
+    if (lastLat === null) {
+      const loadingCard = document.getElementById('gpsLoadingCard');
+      const deniedCard = document.getElementById('gpsDeniedCard');
+      const sessionsContainer = document.getElementById('sessionsContainer');
+
       loadingCard.classList.add('d-none');
       deniedCard.classList.remove('d-none');
+      sessionsContainer.classList.add('d-none');
+    }
+  }
+
+  // Acquire GPS and start continuous real-time watching
+  function acquireGPSAndLoadSessions(isManualTap = false) {
+    const refreshIcon = document.getElementById('refreshGpsIcon');
+    if (isManualTap && refreshIcon) {
+      refreshIcon.classList.add('spinner-border', 'spinner-border-sm');
+      setTimeout(() => {
+        refreshIcon.classList.remove('spinner-border', 'spinner-border-sm');
+      }, 1200);
+    }
+
+    if (!navigator.geolocation) {
+      handleGPSError();
       return;
     }
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const lat = position.coords.latitude;
-        const lng = position.coords.longitude;
+    // 1. Immediate Fresh Query
+    navigator.geolocation.getCurrentPosition(handleGPSPosition, handleGPSError, {
+      enableHighAccuracy: true,
+      timeout: 8000,
+      maximumAge: 0
+    });
 
-        // Store in sessionStorage for fast subsequent checks
-        sessionStorage.setItem('plc_teacher_lat', lat);
-        sessionStorage.setItem('plc_teacher_lng', lng);
+    // 2. Real-time Live Watcher
+    if (!gpsWatchId) {
+      gpsWatchId = navigator.geolocation.watchPosition(handleGPSPosition, handleGPSError, {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      });
+    }
 
-        // Hide loading and denied states; reveal sessions
-        loadingCard.classList.add('d-none');
-        deniedCard.classList.add('d-none');
-        sessionsContainer.classList.remove('d-none');
-
-        // Evaluate geofencing for all session cards
-        updateSessionGeofences(lat, lng);
-      },
-      (error) => {
-        // GPS Inactive or Denied -> Do NOT load sessions
-        loadingCard.classList.add('d-none');
-        deniedCard.classList.remove('d-none');
-        sessionsContainer.classList.add('d-none');
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    );
+    // 3. Heartbeat Polling every 4 seconds
+    if (!gpsPollTimer) {
+      gpsPollTimer = setInterval(() => {
+        navigator.geolocation.getCurrentPosition(handleGPSPosition, () => {}, {
+          enableHighAccuracy: true,
+          timeout: 4000,
+          maximumAge: 0
+        });
+      }, 4000);
+    }
   }
 
-  window.addEventListener('DOMContentLoaded', () => {
-    acquireGPSAndLoadSessions();
+  // Always refresh whenever the educator opens or returns to the page
+  window.addEventListener('DOMContentLoaded', () => acquireGPSAndLoadSessions());
+  window.addEventListener('pageshow', () => acquireGPSAndLoadSessions());
+  window.addEventListener('focus', () => acquireGPSAndLoadSessions());
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) acquireGPSAndLoadSessions();
   });
 </script>
 {% endblock %}
