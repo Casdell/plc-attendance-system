@@ -1,3 +1,4 @@
+import hashlib
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 
@@ -56,7 +57,14 @@ def checkin(session_id):
             return redirect(url_for("teacher.dashboard"))
 
         # Check 4: Anti-Proxy Device Lock (Single-Device-Per-Session)
-        device_id = form.device_id.data.strip() if form.device_id.data else None
+        device_id = form.device_id.data.strip() if (form.device_id.data and form.device_id.data.strip()) else None
+        if not device_id:
+            # Fallback device fingerprint from User-Agent and remote IP
+            ua = request.headers.get("User-Agent", "standard-browser")
+            ip = request.remote_addr or "127.0.0.1"
+            fp_hash = hashlib.sha256(f"{ua}:{ip}:{current_user.id}".encode()).hexdigest()[:16]
+            device_id = f"dev-auto-{fp_hash}"
+
         if device_id:
             proxy_record = Attendance.query.filter_by(
                 session_id=session_obj.id, device_id=device_id

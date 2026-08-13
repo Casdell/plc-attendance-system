@@ -54,7 +54,7 @@ class CheckInForm(FlaskForm):
         validators=[DataRequired(), Length(min=4, max=4, message="Enter the 4-digit code.")],
     )
     # Anti-Proxy Device Fingerprint & Coordinates
-    device_id = HiddenField("Device Fingerprint ID", validators=[DataRequired(message="Device identifier required.")])
+    device_id = HiddenField("Device Fingerprint ID", validators=[Optional()])
     latitude = HiddenField("Teacher Latitude", validators=[Optional()])
     longitude = HiddenField("Teacher Longitude", validators=[Optional()])
     submit = SubmitField("Verify & check in")

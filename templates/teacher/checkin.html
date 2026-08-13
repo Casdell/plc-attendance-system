@@ -309,6 +309,9 @@
       return false;
     }
 
+    // Ensure device fingerprint is always populated before form submission
+    initDeviceFingerprint();
+
     // Instant Visual Response: Spinner & Loading state
     btn.disabled = true;
     btn.classList.add('opacity-75');
@@ -316,15 +319,25 @@
     btnIcon.outerHTML = '<span class="spinner-border spinner-border-sm text-dark ms-2" role="status"></span>';
   });
 
-  // Always refresh whenever returning to page
+  // Always initialize and refresh on page load and return
+  initDeviceFingerprint();
   window.addEventListener('DOMContentLoaded', () => {
     initDeviceFingerprint();
     initGeolocation();
   });
-  window.addEventListener('pageshow', () => initGeolocation());
-  window.addEventListener('focus', () => initGeolocation());
+  window.addEventListener('pageshow', () => {
+    initDeviceFingerprint();
+    initGeolocation();
+  });
+  window.addEventListener('focus', () => {
+    initDeviceFingerprint();
+    initGeolocation();
+  });
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) initGeolocation();
+    if (!document.hidden) {
+      initDeviceFingerprint();
+      initGeolocation();
+    }
   });
 </script>
 {% endblock %}
