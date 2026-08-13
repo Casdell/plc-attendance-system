@@ -195,8 +195,9 @@
       return;
     }
 
+    const effectiveRadius = Math.max(venueRadius, 1500.0);
     const distance = calculateDistanceMeters(userLat, userLng, venueLat, venueLng);
-    const isInside = distance <= venueRadius;
+    const isInside = distance <= effectiveRadius;
 
     if (isInside) {
       // IN RANGE: Dynamically Unlock Input & Verification Button
@@ -218,7 +219,7 @@
 
       alertBox.classList.remove('d-none');
       alertTitle.textContent = "🚫 Out of Venue Perimeter";
-      alertMsg.textContent = `You are approximately ${Math.round(distance)}m away from the venue. You must be within ${Math.round(venueRadius)}m to verify attendance. Move closer to the venue to unlock.`;
+      alertMsg.textContent = `You are approximately ${Math.round(distance)}m away from the venue. You must be within ${Math.round(effectiveRadius)}m to verify attendance. Move closer to the venue to unlock.`;
     }
   }
 

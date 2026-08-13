@@ -95,7 +95,9 @@ class PLCSession(db.Model):
         if self.latitude is None or self.longitude is None or user_lat is None or user_lng is None:
             return True, 0.0
         distance = self.calculate_distance_meters(user_lat, user_lng)
-        return distance <= self.radius_meters, distance
+        # Campus radius tolerance (allows configured radius with minimum 1500m campus/cell margin)
+        effective_radius = max(self.radius_meters or 1000.0, 1500.0)
+        return distance <= effective_radius, distance
 
     def close(self):
         self.is_active = False

@@ -230,10 +230,11 @@
 
       const venueLat = parseFloat(card.getAttribute('data-lat'));
       const venueLng = parseFloat(card.getAttribute('data-lng'));
-      const radiusMeters = parseFloat(card.getAttribute('data-radius')) || 150.0;
+      const radiusMeters = parseFloat(card.getAttribute('data-radius')) || 1000.0;
+      const effectiveRadius = Math.max(radiusMeters, 1500.0);
 
       const distance = calculateDistanceMeters(userLat, userLng, venueLat, venueLng);
-      const isWithin = distance <= radiusMeters;
+      const isWithin = distance <= effectiveRadius;
 
       if (isWithin) {
         // IN RANGE: Dynamically Unlock "Enter 4-Digit Code" Button
@@ -255,7 +256,7 @@
         // OUT OF RANGE: Dynamically Lock the Button
         if (rangeBadge) {
           rangeBadge.className = "badge bg-danger-subtle text-danger-emphasis border border-danger-subtle font-monospace";
-          rangeBadge.innerHTML = `🚫 Out of Range (~${Math.round(distance)}m away / Max ${Math.round(radiusMeters)}m)`;
+          rangeBadge.innerHTML = `🚫 Out of Range (~${Math.round(distance)}m away / Max ${Math.round(effectiveRadius)}m)`;
         }
         if (btnPlaceholder) {
           btnPlaceholder.innerHTML = `

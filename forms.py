@@ -42,7 +42,7 @@ class SessionForm(FlaskForm):
     longitude = FloatField("Venue Longitude", validators=[Optional()])
     radius_meters = FloatField(
         "Geofence Radius (meters)",
-        default=150.0,
+        default=1000.0,
         validators=[Optional(), NumberRange(min=10.0, max=50000.0)],
     )
     submit = SubmitField("Open session")

@@ -95,10 +95,10 @@ class TestUnit:
             assert is_in_close is True
             assert dist_close < 150.0
 
-            # ~1.2 km away
-            is_in_far, dist_far = s.is_within_geofence(5.615000, -0.187000)
+            # ~3 km away (remote location)
+            is_in_far, dist_far = s.is_within_geofence(5.630000, -0.187000)
             assert is_in_far is False
-            assert dist_far > 1000.0
+            assert dist_far > 2000.0
 
 
 # ---------------------------------------------------------------------------
@@ -181,13 +181,13 @@ class TestCheckInFlow:
             session_id = s.id
 
         login(client, teacher_email)
-        # Attempt check in ~1.5km away
+        # Attempt check in ~3km away (remote proxy attempt)
         resp = client.post(
             f"/teacher/sessions/{session_id}/checkin",
             data={
                 "access_code": "8888",
                 "device_id": "dev-gps-far",
-                "latitude": "5.617000",
+                "latitude": "5.630000",
                 "longitude": "-0.187000",
             },
             follow_redirects=True,
