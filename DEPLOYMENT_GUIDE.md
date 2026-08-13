@@ -67,7 +67,7 @@ Your application already includes the necessary production files:
 
 1. Scroll down to **"Advanced"** &rarr; click **"Add Environment Variable"**.
 2. Add the following keys:
-   - **`SECRET_KEY`**: A secure random secret string (e.g. `ges-plc-production-secret-key-2026`).
+   - **`SECRET_KEY`**: A secure random secret string (e.g. `0b8674fe999b4bc248a5070c223c267e`).
    - **`SESSION_WINDOW_MINUTES`**: `30` (or your preferred check-in window).
 3. Click **"Deploy Web Service"**.
 

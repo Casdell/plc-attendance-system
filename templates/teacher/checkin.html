@@ -61,6 +61,29 @@
         </div>
       </div>
 
+      <!-- Out-of-Range / GPS Warning Banner (Dynamic) -->
+      <div id="geofenceAlertBox" class="alert alert-warning border-0 shadow-sm rounded-3 p-3 mb-4 text-start d-none">
+        <div class="d-flex align-items-start gap-2.5">
+          <svg width="18" height="18" class="text-warning-emphasis flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <div>
+            <p class="small fw-bold text-dark mb-0" id="geofenceAlertTitle">Location Check Pending</p>
+            <p class="small text-secondary mb-0" id="geofenceAlertMsg" style="font-size: 0.75rem;">Waiting for GPS coordinates to verify physical presence.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Client-Side Instant Error Banner -->
+      <div id="clientErrorBanner" class="alert alert-danger border-0 shadow-sm rounded-3 p-3 mb-4 text-start d-none">
+        <div class="d-flex align-items-center gap-2">
+          <svg width="16" height="16" class="text-danger flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span class="small fw-semibold text-danger" id="clientErrorText"></span>
+        </div>
+      </div>
+
       <!-- Check-in Form -->
       <form method="POST" novalidate id="checkinForm" class="d-flex flex-column gap-3">
         {{ form.hidden_tag() }}
@@ -75,7 +98,7 @@
             Enter 4-Digit Venue Code
           </label>
           
-          {{ form.access_code(class="form-control code-input-field w-100 shadow-sm", maxlength=4, inputmode="numeric", placeholder="••••", autofocus=true) }}
+          {{ form.access_code(id="inputAccessCode", class="form-control code-input-field w-100 shadow-sm", maxlength=4, inputmode="numeric", placeholder="••••", autofocus=true) }}
 
           {% for e in form.access_code.errors %}
             <div class="text-danger small mt-2 d-flex align-items-center justify-content-center gap-1">
@@ -86,8 +109,8 @@
         </div>
 
         <button type="submit" id="btnSubmitCheckin" class="btn-gold-custom w-100 py-3 shadow mt-2">
-          <span>Verify &amp; Confirm Presence</span>
-          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <span id="btnSubmitText">Verify &amp; Confirm Presence</span>
+          <svg id="btnSubmitIcon" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
           </svg>
         </button>
@@ -99,18 +122,32 @@
 </div>
 
 <script>
+  const venueHasCoords = {{ 'true' if (session_obj.latitude is not none and session_obj.longitude is not none) else 'false' }};
+  const venueLat = {{ session_obj.latitude if session_obj.latitude is not none else 'null' }};
+  const venueLng = {{ session_obj.longitude if session_obj.longitude is not none else 'null' }};
+  const venueRadius = {{ session_obj.radius_meters if session_obj.radius_meters is not none else '150.0' }};
+
+  function calculateDistanceMeters(lat1, lon1, lat2, lon2) {
+    const R = 6371000;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
   // 1. Client-Side Persistent Unique Device Fingerprint Generator
   function initDeviceFingerprint() {
     let deviceUUID = localStorage.getItem('plc_attendance_device_uuid');
     if (!deviceUUID) {
-      // Generate cryptographic random UUID
       deviceUUID = 'dev-' + ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
         (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
       );
       localStorage.setItem('plc_attendance_device_uuid', deviceUUID);
     }
     
-    // Combine with browser entropy
     const entropy = `${screen.width}x${screen.height}-${navigator.language}-${new Date().getTimezoneOffset()}`;
     const fullDeviceId = `${deviceUUID}:${entropy}`;
     
@@ -121,32 +158,108 @@
     }
   }
 
-  // 2. Client-Side Geolocation Acquisition
+  // 2. Client-Side Geolocation Acquisition & Perimeter Guard
   function initGeolocation() {
     const gpsBadge = document.getElementById('gpsBadge');
     const latField = document.getElementById('hidden_teacher_lat');
     const lngField = document.getElementById('hidden_teacher_lng');
+    const alertBox = document.getElementById('geofenceAlertBox');
+    const alertTitle = document.getElementById('geofenceAlertTitle');
+    const alertMsg = document.getElementById('geofenceAlertMsg');
+    const codeInput = document.getElementById('inputAccessCode');
+    const submitBtn = document.getElementById('btnSubmitCheckin');
+
+    if (!venueHasCoords) {
+      gpsBadge.textContent = "Open Venue (No Lock)";
+      gpsBadge.className = "font-monospace text-info fw-bold";
+      return;
+    }
+
+    // Default to locked state until verified
+    codeInput.disabled = true;
+    submitBtn.disabled = true;
+    submitBtn.classList.add('opacity-50');
 
     if (!navigator.geolocation) {
       gpsBadge.textContent = "GPS Unavailable";
-      gpsBadge.className = "font-monospace text-warning fw-bold";
+      gpsBadge.className = "font-monospace text-danger fw-bold";
+      alertBox.classList.remove('d-none');
+      alertTitle.textContent = "Geolocation Unsupported";
+      alertMsg.textContent = "Your browser does not support GPS location tracking. Please use a mobile browser with GPS.";
       return;
     }
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        latField.value = pos.coords.latitude;
-        lngField.value = pos.coords.longitude;
-        gpsBadge.textContent = "GPS Locked";
-        gpsBadge.className = "font-monospace text-success fw-bold";
+        const userLat = pos.coords.latitude;
+        const userLng = pos.coords.longitude;
+        latField.value = userLat;
+        lngField.value = userLng;
+
+        const distance = calculateDistanceMeters(userLat, userLng, venueLat, venueLng);
+        const isInside = distance <= venueRadius;
+
+        if (isInside) {
+          // In Range: Unlock Input & Verification Button
+          codeInput.disabled = false;
+          submitBtn.disabled = false;
+          submitBtn.classList.remove('opacity-50');
+          alertBox.classList.add('d-none');
+
+          gpsBadge.textContent = `In Range (~${Math.round(distance)}m)`;
+          gpsBadge.className = "font-monospace text-success fw-bold";
+          codeInput.focus();
+        } else {
+          // Out of Range: Keep locked
+          codeInput.disabled = true;
+          submitBtn.disabled = true;
+          submitBtn.classList.add('opacity-50');
+
+          gpsBadge.textContent = `Out of Range (~${Math.round(distance)}m)`;
+          gpsBadge.className = "font-monospace text-danger fw-bold";
+
+          alertBox.classList.remove('d-none');
+          alertTitle.textContent = "🚫 Out of Venue Perimeter";
+          alertMsg.textContent = `You are approximately ${Math.round(distance)}m away from the venue. You must be within ${Math.round(venueRadius)}m to verify attendance.`;
+        }
       },
       (err) => {
         gpsBadge.textContent = "GPS Inactive / Denied";
         gpsBadge.className = "font-monospace text-danger fw-bold";
+        alertBox.classList.remove('d-none');
+        alertTitle.textContent = "GPS Permission Denied";
+        alertMsg.textContent = "Location access was denied. Please allow location permissions in your browser to unlock code verification.";
       },
       { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
     );
   }
+
+  // 3. Guaranteed Click Response & Instant Loading Feedback
+  document.getElementById('checkinForm').addEventListener('submit', function (e) {
+    const codeInput = document.getElementById('inputAccessCode');
+    const errBanner = document.getElementById('clientErrorBanner');
+    const errText = document.getElementById('clientErrorText');
+    const btn = document.getElementById('btnSubmitCheckin');
+    const btnText = document.getElementById('btnSubmitText');
+    const btnIcon = document.getElementById('btnSubmitIcon');
+
+    errBanner.classList.add('d-none');
+
+    const code = codeInput.value.trim();
+    if (!code || code.length !== 4) {
+      e.preventDefault();
+      errText.textContent = "Please enter the complete 4-digit verification code.";
+      errBanner.classList.remove('d-none');
+      codeInput.focus();
+      return false;
+    }
+
+    // Instant Visual Response: Spinner & Loading state
+    btn.disabled = true;
+    btn.classList.add('opacity-75');
+    btnText.textContent = "Verifying Credentials & Location...";
+    btnIcon.outerHTML = '<span class="spinner-border spinner-border-sm text-dark ms-2" role="status"></span>';
+  });
 
   window.addEventListener('DOMContentLoaded', () => {
     initDeviceFingerprint();

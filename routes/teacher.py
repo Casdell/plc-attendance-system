@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, url_for, flash
+from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
 
 from extensions import db
@@ -113,6 +113,13 @@ def checkin(session_id):
         if current_user.is_admin:
             return redirect(url_for("admin.session_detail", session_id=session_obj.id))
         return redirect(url_for("teacher.dashboard"))
+
+    elif request.method == "POST":
+        err_msgs = [err for field in form.errors.values() for err in field]
+        if err_msgs:
+            flash(f"Verification Failed: {'; '.join(err_msgs)}", "danger")
+        else:
+            flash("Verification Failed: Please enter a valid 4-digit code and ensure device ID is present.", "danger")
 
     return render_template("teacher/checkin.html", session_obj=session_obj, form=form)
 

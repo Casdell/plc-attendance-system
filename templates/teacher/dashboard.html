@@ -22,80 +22,282 @@
     </a>
   </div>
 
-  <!-- Active Sessions List -->
-  {% if active_sessions %}
-  <div class="d-flex flex-column gap-3">
-    {% for s in active_sessions %}
-    <div class="glass-panel hover-elevate p-4 border border-slate-200">
-      <div class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3">
+  <!-- GPS Gatekeeper State 1: Requesting / Querying Location -->
+  <div id="gpsLoadingCard" class="glass-panel p-5 text-center shadow-sm">
+    <div class="spinner-border text-warning mb-3" style="width: 2.5rem; height: 2.5rem;" role="status">
+      <span class="visually-hidden">Loading GPS...</span>
+    </div>
+    <h4 class="font-display fw-bold text-dark mb-1">Acquiring GPS Location...</h4>
+    <p class="text-secondary small max-w-sm mx-auto mb-0">
+      Please grant location permissions if prompted by your browser. Active PLC sessions are protected by geolocation geofencing.
+    </p>
+  </div>
+
+  <!-- GPS Gatekeeper State 2: GPS Inactive / Permission Denied -->
+  <div id="gpsDeniedCard" class="glass-panel p-5 text-center shadow-sm border-warning d-none">
+    <div class="avatar-circle avatar-circle-gold mx-auto mb-3" style="width: 56px; height: 56px;">
+      <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6" />
+      </svg>
+    </div>
+    <h3 class="font-display fw-bold text-dark mb-2">GPS Location Access Required</h3>
+    <p class="text-secondary small max-w-md mx-auto mb-4">
+      To prevent remote attendance fraud and uphold institutional compliance, active PLC sessions cannot be loaded without active GPS verification.
+      Please turn on your device's location services and allow location access in your browser settings.
+    </p>
+    <button type="button" onclick="acquireGPSAndLoadSessions()" class="btn-gold-custom py-2.5 px-4">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+      </svg>
+      <span>Enable GPS &amp; Load Sessions</span>
+    </button>
+  </div>
+
+  <!-- Main Sessions Container (Revealed ONLY after GPS is active) -->
+  <div id="sessionsContainer" class="d-none">
+    
+    <!-- Active Sessions List -->
+    {% if active_sessions %}
+    <div class="d-flex flex-column gap-3">
+      {% for s in active_sessions %}
+      <div class="glass-panel hover-elevate p-4 border border-slate-200 session-card"
+           id="sessionCard-{{ s.id }}"
+           data-session-id="{{ s.id }}"
+           data-has-coords="{{ 'true' if (s.latitude is not none and s.longitude is not none) else 'false' }}"
+           data-lat="{{ s.latitude if s.latitude is not none else '' }}"
+           data-lng="{{ s.longitude if s.longitude is not none else '' }}"
+           data-radius="{{ s.radius_meters if s.radius_meters is not none else 150.0 }}"
+           data-checked-in="{{ 'true' if s.id in checked_in else 'false' }}"
+           data-checkin-url="{{ url_for('teacher.checkin', session_id=s.id) }}">
         
-        <!-- Left Topic & Details -->
-        <div>
-          <div class="d-flex align-items-center gap-2 mb-2">
-            <span class="badge-status-open">
-              <span class="live-pulse-dot"></span>
-              Live Check-In Active
-            </span>
-            <span class="text-muted small font-monospace" style="font-size: 0.75rem;">
-              Window closes {{ s.window_expires_at(window_minutes).strftime('%H:%M') }}
-            </span>
+        <div class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3">
+          
+          <!-- Left Topic & Details -->
+          <div>
+            <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+              <span class="badge-status-open">
+                <span class="live-pulse-dot"></span>
+                Live Check-In Active
+              </span>
+              <span class="text-muted small font-monospace" style="font-size: 0.75rem;">
+                Window closes {{ s.window_expires_at(window_minutes).strftime('%H:%M') }}
+              </span>
+
+              <!-- Live Geofence Distance Pill -->
+              <span id="rangeBadge-{{ s.id }}" class="badge bg-secondary-subtle text-secondary font-monospace" style="font-size: 0.6875rem;">
+                {% if s.latitude is not none %}
+                  Evaluating GPS Distance...
+                {% else %}
+                  Open Venue (No GPS Lock)
+                {% endif %}
+              </span>
+            </div>
+
+            <h4 class="font-display fw-bold text-dark mb-1">{{ s.title }}</h4>
+            <p class="text-muted small mb-0 d-flex flex-wrap align-items-center gap-2">
+              <span class="fw-semibold text-dark">{{ s.department or "All School Departments" }}</span>
+              <span>&bull;</span>
+              <span>Opened at {{ s.opened_at.strftime('%H:%M') }}</span>
+              <span>&bull;</span>
+              <span>{{ s.duration_minutes }} min session</span>
+            </p>
           </div>
 
-          <h4 class="font-display fw-bold text-dark mb-1">{{ s.title }}</h4>
-          <p class="text-muted small mb-0 d-flex flex-wrap align-items-center gap-2">
-            <span class="fw-semibold text-dark">{{ s.department or "All School Departments" }}</span>
-            <span>&bull;</span>
-            <span>Opened at {{ s.opened_at.strftime('%H:%M') }}</span>
-            <span>&bull;</span>
-            <span>{{ s.duration_minutes }} min session</span>
-          </p>
-        </div>
+          <!-- Right Action Button / Status Badge -->
+          <div class="d-flex align-items-center" id="actionContainer-{{ s.id }}">
+            {% if s.id in checked_in %}
+              <div class="d-flex align-items-center gap-2 px-3 py-2 bg-success-subtle text-success-emphasis border border-success-subtle rounded-3 shadow-sm">
+                <div class="avatar-circle avatar-circle-emerald" style="width: 26px; height: 26px;">
+                  <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <div>
+                  <p class="small fw-bold mb-0 lh-1">Verified Present</p>
+                  <p class="text-success mb-0 mt-0.5 lh-1" style="font-size: 0.6875rem;">Attendance Recorded</p>
+                </div>
+              </div>
+            {% else %}
+              <!-- Dynamic Check-in Button Placeholder (Updated via JS based on geofence) -->
+              <div id="btnPlaceholder-{{ s.id }}">
+                {% if s.latitude is not none %}
+                  <button type="button" disabled class="btn btn-secondary py-2 px-4 small opacity-50 cursor-not-allowed">
+                    <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                    <span>Checking Range...</span>
+                  </button>
+                {% else %}
+                  <a href="{{ url_for('teacher.checkin', session_id=s.id) }}" class="btn-gold-custom py-2 px-4 small w-100 w-sm-auto">
+                    <span>Enter 4-Digit Code</span>
+                    <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                  </a>
+                {% endif %}
+              </div>
+            {% endif %}
+          </div>
 
-        <!-- Right Action Button / Status Badge -->
-        <div class="d-flex align-items-center">
-          {% if s.id in checked_in %}
-            <div class="d-flex align-items-center gap-2 px-3 py-2 bg-success-subtle text-success-emphasis border border-success-subtle rounded-3 shadow-sm">
-              <div class="avatar-circle avatar-circle-emerald" style="width: 26px; height: 26px;">
-                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <div>
-                <p class="small fw-bold mb-0 lh-1">Verified Present</p>
-                <p class="text-success mb-0 mt-0.5 lh-1" style="font-size: 0.6875rem;">Attendance Recorded</p>
-              </div>
-            </div>
-          {% else %}
-            <a href="{{ url_for('teacher.checkin', session_id=s.id) }}" class="btn-gold-custom py-2 px-4 small w-100 w-sm-auto">
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="glass-panel p-5 text-center border-2 border-dashed">
+      <div class="avatar-circle avatar-circle-slate mx-auto mb-3" style="width: 48px; height: 48px;">
+        <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </div>
+      <h4 class="font-display fw-bold text-dark mb-1">No Active Sessions Open</h4>
+      <p class="text-secondary small max-w-sm mx-auto mb-4">There are currently no active PLC sessions in progress. When your PLC coordinator opens a session at the venue, it will appear here immediately for check-in.</p>
+      <a href="{{ url_for('teacher.history') }}" class="btn-secondary-custom">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span>Review Past Attendance Logs</span>
+      </a>
+    </div>
+    {% endif %}
+
+  </div>
+
+</div>
+
+<script>
+  // Haversine Distance Calculation in Meters
+  function calculateDistanceMeters(lat1, lon1, lat2, lon2) {
+    const R = 6371000; // Earth radius in meters
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  // Update session cards based on verified GPS coordinates
+  function updateSessionGeofences(userLat, userLng) {
+    const cards = document.querySelectorAll('.session-card');
+    
+    cards.forEach(card => {
+      const sessionId = card.getAttribute('data-session-id');
+      const hasCoords = card.getAttribute('data-has-coords') === 'true';
+      const isCheckedIn = card.getAttribute('data-checked-in') === 'true';
+      const checkinUrl = card.getAttribute('data-checkin-url');
+      const rangeBadge = document.getElementById(`rangeBadge-${sessionId}`);
+      const btnPlaceholder = document.getElementById(`btnPlaceholder-${sessionId}`);
+
+      if (isCheckedIn) return;
+
+      if (!hasCoords) {
+        if (rangeBadge) {
+          rangeBadge.className = "badge bg-info-subtle text-info-emphasis font-monospace";
+          rangeBadge.textContent = "Open Venue (No GPS Lock)";
+        }
+        if (btnPlaceholder) {
+          btnPlaceholder.innerHTML = `
+            <a href="${checkinUrl}" class="btn-gold-custom py-2 px-4 small w-100 w-sm-auto">
               <span>Enter 4-Digit Code</span>
               <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
               </svg>
             </a>
-          {% endif %}
-        </div>
+          `;
+        }
+        return;
+      }
 
-      </div>
-    </div>
-    {% endfor %}
-  </div>
-  {% else %}
-  <div class="glass-panel p-5 text-center border-2 border-dashed">
-    <div class="avatar-circle avatar-circle-slate mx-auto mb-3" style="width: 48px; height: 48px;">
-      <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    </div>
-    <h4 class="font-display fw-bold text-dark mb-1">No Active Sessions Open</h4>
-    <p class="text-secondary small max-w-sm mx-auto mb-4">There are currently no active PLC sessions in progress. When your PLC coordinator opens a session at the venue, it will appear here immediately for check-in.</p>
-    <a href="{{ url_for('teacher.history') }}" class="btn-secondary-custom">
-      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-      <span>Review Past Attendance Logs</span>
-    </a>
-  </div>
-  {% endif %}
+      const venueLat = parseFloat(card.getAttribute('data-lat'));
+      const venueLng = parseFloat(card.getAttribute('data-lng'));
+      const radiusMeters = parseFloat(card.getAttribute('data-radius')) || 150.0;
 
-</div>
+      const distance = calculateDistanceMeters(userLat, userLng, venueLat, venueLng);
+      const isWithin = distance <= radiusMeters;
+
+      if (isWithin) {
+        // IN RANGE: Activate "Enter 4-Digit Code" Button
+        if (rangeBadge) {
+          rangeBadge.className = "badge bg-success-subtle text-success-emphasis border border-success-subtle font-monospace";
+          rangeBadge.innerHTML = `<span class="d-inline-block rounded-circle bg-success me-1" style="width:6px;height:6px;"></span>In Range (~${Math.round(distance)}m)`;
+        }
+        if (btnPlaceholder) {
+          btnPlaceholder.innerHTML = `
+            <a href="${checkinUrl}" class="btn-gold-custom py-2 px-4 small w-100 w-sm-auto">
+              <span>Enter 4-Digit Code</span>
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
+            </a>
+          `;
+        }
+      } else {
+        // OUT OF RANGE: Do NOT activate / Lock the button
+        if (rangeBadge) {
+          rangeBadge.className = "badge bg-danger-subtle text-danger-emphasis border border-danger-subtle font-monospace";
+          rangeBadge.innerHTML = `🚫 Out of Range (~${Math.round(distance)}m away / Max ${Math.round(radiusMeters)}m)`;
+        }
+        if (btnPlaceholder) {
+          btnPlaceholder.innerHTML = `
+            <button type="button" disabled class="btn btn-outline-secondary py-2 px-3 small opacity-50 cursor-not-allowed d-inline-flex align-items-center gap-1.5" title="You are outside the venue radius. Move closer to the venue to unlock.">
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+              <span>Out of Range</span>
+            </button>
+          `;
+        }
+      }
+    });
+  }
+
+  // Acquire GPS and enforce session visibility
+  function acquireGPSAndLoadSessions() {
+    const loadingCard = document.getElementById('gpsLoadingCard');
+    const deniedCard = document.getElementById('gpsDeniedCard');
+    const sessionsContainer = document.getElementById('sessionsContainer');
+
+    loadingCard.classList.remove('d-none');
+    deniedCard.classList.add('d-none');
+    sessionsContainer.classList.add('d-none');
+
+    if (!navigator.geolocation) {
+      loadingCard.classList.add('d-none');
+      deniedCard.classList.remove('d-none');
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+
+        // Store in sessionStorage for fast subsequent checks
+        sessionStorage.setItem('plc_teacher_lat', lat);
+        sessionStorage.setItem('plc_teacher_lng', lng);
+
+        // Hide loading and denied states; reveal sessions
+        loadingCard.classList.add('d-none');
+        deniedCard.classList.add('d-none');
+        sessionsContainer.classList.remove('d-none');
+
+        // Evaluate geofencing for all session cards
+        updateSessionGeofences(lat, lng);
+      },
+      (error) => {
+        // GPS Inactive or Denied -> Do NOT load sessions
+        loadingCard.classList.add('d-none');
+        deniedCard.classList.remove('d-none');
+        sessionsContainer.classList.add('d-none');
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    acquireGPSAndLoadSessions();
+  });
+</script>
 {% endblock %}
