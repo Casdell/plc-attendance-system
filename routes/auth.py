@@ -41,6 +41,9 @@ def register():
     return render_template("auth/register.html", form=form)
 
 
+from device import get_device_identifiers, is_device_blocked_for_active_session
+
+
 @auth_bp.route("/login", methods=["GET", "POST"])
 def login():
     if current_user.is_authenticated:
@@ -57,28 +60,26 @@ def login():
                 )
                 return render_template("auth/login.html", form=form)
 
+            # Extract all candidate identifiers for this physical device
+            canonical_dev, candidate_devs = get_device_identifiers(request, form)
+
             # Prevent device from logging in with different credentials if it already submitted for an active session
-            device_id = form.device_id.data.strip() if (form.device_id.data and form.device_id.data.strip()) else None
-            if device_id and not user.is_admin:
-                active_proxy_attendance = (
-                    Attendance.query.join(PLCSession)
-                    .filter(
-                        PLCSession.is_active == True,
-                        Attendance.device_id == device_id,
-                        Attendance.user_id != user.id,
-                    )
-                    .first()
+            if not user.is_admin and is_device_blocked_for_active_session(candidate_devs, user.id):
+                flash(
+                    "You can't submit twice. This device has already been used to record attendance for another educator.",
+                    "danger",
                 )
-                if active_proxy_attendance:
-                    flash(
-                        "You can't submit twice. This device has already been used to record attendance for another educator.",
-                        "danger",
-                    )
-                    return render_template("auth/login.html", form=form)
+                return render_template("auth/login.html", form=form)
 
             login_user(user)
             flash(f"Welcome back, {user.name.split()[0]}.", "success")
-            return redirect(url_for("admin.dashboard") if user.is_admin else url_for("teacher.dashboard"))
+            
+            dest_url = url_for("admin.dashboard") if user.is_admin else url_for("teacher.dashboard")
+            response = redirect(dest_url)
+            # Persist canonical device ID in browser cookie
+            response.set_cookie("plc_device_id", canonical_dev, max_age=31536000, samesite="Lax")
+            return response
+
         flash("Incorrect email or password.", "danger")
 
     return render_template("auth/login.html", form=form)

@@ -85,18 +85,23 @@
   function initDeviceFingerprint() {
     let deviceUUID = localStorage.getItem('plc_attendance_device_uuid');
     if (!deviceUUID) {
+      const match = document.cookie.match(/(^|;)\s*plc_device_id\s*=\s*([^;]+)/);
+      if (match) {
+        deviceUUID = decodeURIComponent(match[2]);
+      }
+    }
+    if (!deviceUUID) {
       deviceUUID = 'dev-' + ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
         (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
       );
-      localStorage.setItem('plc_attendance_device_uuid', deviceUUID);
     }
-    
-    const entropy = `${screen.width}x${screen.height}-${navigator.language}-${new Date().getTimezoneOffset()}`;
-    const fullDeviceId = `${deviceUUID}:${entropy}`;
+    localStorage.setItem('plc_attendance_device_uuid', deviceUUID);
+    sessionStorage.setItem('plc_attendance_device_uuid', deviceUUID);
+    document.cookie = "plc_device_id=" + encodeURIComponent(deviceUUID) + "; path=/; max-age=31536000; SameSite=Lax";
     
     const hiddenField = document.getElementById('hidden_device_id');
     if (hiddenField) {
-      hiddenField.value = fullDeviceId;
+      hiddenField.value = deviceUUID;
     }
   }
 

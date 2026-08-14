@@ -6,6 +6,7 @@ from extensions import db
 from models import PLCSession, Attendance
 from forms import CheckInForm
 from config import Config
+from device import get_device_identifiers, is_device_blocked_for_session
 
 teacher_bp = Blueprint("teacher", __name__, url_prefix="/teacher")
 
@@ -57,24 +58,14 @@ def checkin(session_id):
             return redirect(url_for("teacher.dashboard"))
 
         # Check 4: Anti-Proxy Device Lock (Single-Device-Per-Session)
-        device_id = form.device_id.data.strip() if (form.device_id.data and form.device_id.data.strip()) else None
-        if not device_id:
-            # Fallback device fingerprint from User-Agent and remote IP
-            ua = request.headers.get("User-Agent", "standard-browser")
-            ip = request.remote_addr or "127.0.0.1"
-            fp_hash = hashlib.sha256(f"{ua}:{ip}:{current_user.id}".encode()).hexdigest()[:16]
-            device_id = f"dev-auto-{fp_hash}"
+        canonical_dev, candidate_devs = get_device_identifiers(request, form)
 
-        if device_id:
-            proxy_record = Attendance.query.filter_by(
-                session_id=session_obj.id, device_id=device_id
-            ).filter(Attendance.user_id != current_user.id).first()
-            if proxy_record:
-                flash(
-                    "You can't submit twice. This device has already recorded attendance for another attendee in this session.",
-                    "danger",
-                )
-                return render_template("teacher/checkin.html", session_obj=session_obj, form=form)
+        if is_device_blocked_for_session(session_obj.id, candidate_devs, current_user.id):
+            flash(
+                "You can't submit twice. This device has already recorded attendance for another attendee in this session.",
+                "danger",
+            )
+            return render_template("teacher/checkin.html", session_obj=session_obj, form=form)
 
         # Check 5: Venue GPS Geofencing Margin Check
         user_lat = None
@@ -104,7 +95,7 @@ def checkin(session_id):
             session_id=session_obj.id,
             user_id=current_user.id,
             status="Present",
-            device_id=device_id,
+            device_id=canonical_dev,
             latitude=user_lat,
             longitude=user_lng,
             distance_meters=distance_meters,
@@ -112,9 +103,11 @@ def checkin(session_id):
         db.session.add(record)
         db.session.commit()
         flash(f'Checked in to "{session_obj.title}". Attendance verified and recorded.', "success")
-        if current_user.is_admin:
-            return redirect(url_for("admin.session_detail", session_id=session_obj.id))
-        return redirect(url_for("teacher.dashboard"))
+
+        dest_url = url_for("admin.session_detail", session_id=session_obj.id) if current_user.is_admin else url_for("teacher.dashboard")
+        response = redirect(dest_url)
+        response.set_cookie("plc_device_id", canonical_dev, max_age=31536000, samesite="Lax")
+        return response
 
     elif request.method == "POST":
         err_msgs = [err for field in form.errors.values() for err in field]

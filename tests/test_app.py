@@ -220,23 +220,24 @@ class TestCheckInFlow:
         with app.app_context():
             assert Attendance.query.filter_by(session_id=session_id).count() == 1
 
-        # Teacher 1 logs out. Teacher 2 logs in on the SAME device and attempts check-in
+        # Teacher 1 logs out. Teacher 2 attempts to log in on the SAME device -> Blocked at login
         client.get("/auth/logout")
-        login(client, teacher2_email)
-        resp2 = client.post(
-            f"/teacher/sessions/{session_id}/checkin",
-            data={"access_code": "9999", "device_id": "phone-shared-uuid"},
+        resp_login_blocked = client.post(
+            "/auth/login",
+            data={"email": teacher2_email, "password": "Password123", "device_id": "phone-shared-uuid"},
             follow_redirects=True,
         )
-        assert "submit twice" in resp2.get_data(as_text=True)
+        assert "submit twice" in resp_login_blocked.get_data(as_text=True)
 
         # Ensure Teacher 2's attendance was NOT recorded from the duplicate device
         with app.app_context():
             t2 = User.query.filter_by(email=teacher2_email).first()
             assert Attendance.query.filter_by(session_id=session_id, user_id=t2.id).count() == 0
 
-        # Teacher 2 now uses their OWN separate device (Device Y) -> succeeds
-        resp3 = client.post(
+        # Teacher 2 now uses their OWN separate device (Client Two / Device Y) -> succeeds
+        client_two = app.test_client()
+        login(client_two, teacher2_email)
+        resp3 = client_two.post(
             f"/teacher/sessions/{session_id}/checkin",
             data={"access_code": "9999", "device_id": "phone-legit-uuid"},
             follow_redirects=True,
@@ -278,8 +279,9 @@ class TestCheckInFlow:
         )
         assert "submit twice" in resp_login_blocked.get_data(as_text=True)
 
-        # Teacher 2 logs in from Device Beta -> Allowed
-        resp_login_allowed = client.post(
+        # Teacher 2 logs in from Device Beta (Separate Device Client) -> Allowed
+        client_beta = app.test_client()
+        resp_login_allowed = client_beta.post(
             "/auth/login",
             data={
                 "email": teacher2_email,
